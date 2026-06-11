@@ -83,18 +83,14 @@
       <configSetting altId="p407.gpio_mode.gpio_mode_peripheral" configurationId="p407.gpio_mode"/>
       <configSetting altId="p501.gpio_mode.gpio_mode_peripheral" configurationId="p501.gpio_mode"/>
       <configSetting altId="p502.gpio_mode.gpio_mode_peripheral" configurationId="p502.gpio_mode"/>
-      <configSetting altId="p504.output.high" configurationId="p504"/>
-      <configSetting altId="p504.gpio_mode.gpio_mode_out.high" configurationId="p504.gpio_mode"/>
       <configSetting altId="p505.gpio_speed.gpio_speed_high" configurationId="p505.gpio_drivecapacity"/>
       <configSetting altId="p505.gpio_mode.gpio_mode_peripheral" configurationId="p505.gpio_mode"/>
       <configSetting altId="p506.gpio_speed.gpio_speed_high" configurationId="p506.gpio_drivecapacity"/>
       <configSetting altId="p506.gpio_mode.gpio_mode_peripheral" configurationId="p506.gpio_mode"/>
-      <configSetting altId="p507.output.high" configurationId="p507"/>
-      <configSetting altId="p507.gpio_speed.gpio_speed_high" configurationId="p507.gpio_drivecapacity"/>
-      <configSetting altId="p507.gpio_mode.gpio_mode_out.high" configurationId="p507.gpio_mode"/>
-      <configSetting altId="p508.output.high" configurationId="p508"/>
-      <configSetting altId="p508.gpio_speed.gpio_speed_high" configurationId="p508.gpio_drivecapacity"/>
-      <configSetting altId="p508.gpio_mode.gpio_mode_out.high" configurationId="p508.gpio_mode"/>
+      <configSetting altId="p511.gpio_mode.gpio_mode_peripheral" configurationId="p511.gpio_mode"/>
+      <configSetting altId="p512.gpio_mode.gpio_mode_peripheral" configurationId="p512.gpio_mode"/>
+      <configSetting altId="sci4.rxd.p511" configurationId="sci4.rxd" isUsedByDriver="true" peripheral="SCI4"/>
+      <configSetting altId="sci4.txd.p512" configurationId="sci4.txd" isUsedByDriver="true" peripheral="SCI4"/>
       <configSetting altId="sci5.rxd.p502" configurationId="sci5.rxd" isUsedByDriver="true" peripheral="SCI5"/>
       <configSetting altId="sci5.txd.p501" configurationId="sci5.txd" isUsedByDriver="true" peripheral="SCI5"/>
       <configSetting altId="sci6.rxd.p505" configurationId="sci6.rxd" isUsedByDriver="true" peripheral="SCI6"/>

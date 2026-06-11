@@ -6,8 +6,8 @@
 #include "daemon.h" // 复用守护进程
 #include "motor_def.h"
 
-/* 六轴机械臂 */
-#define ARM_JOINT_COUNT 6
+/* 六轴机械臂 + 1级夹爪 */
+#define ARM_JOINT_COUNT 7
 
 /* Dummy 协议指令集 */
 // 无存储类指令 (掉电不保存)
@@ -102,6 +102,16 @@ typedef struct
     DaemonInstance *daemon;          // 守护进程实例
 } JointMotorInstance;
 
+/* 夹爪参数配置结构体 */
+typedef struct {
+    uint8_t id;                        // 夹爪电机ID
+    float target_grab_angle;           // 自动抓取时闭合极限位置
+    float stop_threshold_current;      // 力控电流阈值绝对值
+    float release_angle;               // 松开时的复位角度
+    float speed_limit;                 // 夹爪运动速度
+    uint32_t timeout_loops;            // 超时保护循环次数
+} Gripper_Config_t;
+
 /* --- API --- */
 void Joint_Motor_Init_Legacy(void); // Renaming or Removing old declaration
 Joint_t *Joint_Motor_Get_Joint(uint8_t id);
@@ -155,4 +165,11 @@ void Joint_Motor_Reboot(uint8_t id);
 void Joint_Motor_Set_Zero(uint8_t id);
 void CANTransmit_Test(void);
 void Joint_All_Motor_Set(float joint1_angle, float joint2_angle, float joint3_angle, float joint4_angle, float joint5_angle, float joint6_angle);
+
+#define GRIPPER_STATE_IDLE      0 // 空闲
+#define GRIPPER_STATE_WAIT_LOAD 1 // 等待受力
+#define GRIPPER_STATE_LOCKED    2 // 已锁定
+// 夹爪控制 API
+void Joint_Motor_Gripper_Task(Gripper_Config_t *config, uint8_t gripper_mode);
+
 #endif /* __Joint_MOTOR_H */

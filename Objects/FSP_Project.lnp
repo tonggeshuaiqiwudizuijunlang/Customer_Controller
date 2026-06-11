@@ -16,6 +16,7 @@
 ".\objects\mc6c.o"
 ".\objects\dummy_kinematic_v2.o"
 ".\objects\vision.o"
+".\objects\wifi.o"
 ".\objects\bluetooth.o"
 ".\objects\dummy_cmd.o"
 ".\objects\dummy_motormatic.o"

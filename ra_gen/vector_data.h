@@ -6,7 +6,7 @@
         #endif
                 /* Number of interrupts allocated */
         #ifndef VECTOR_DATA_IRQ_COUNT
-        #define VECTOR_DATA_IRQ_COUNT    (21)
+        #define VECTOR_DATA_IRQ_COUNT    (25)
         #endif
         /* ISR prototypes */
         void canfd_error_isr(void);
@@ -65,8 +65,16 @@
         #define USBFS_FIFO_0_IRQn          ((IRQn_Type) 19) /* USBFS FIFO 0 (DMA/DTC transfer request 0) */
         #define VECTOR_NUMBER_USBFS_FIFO_1 ((IRQn_Type) 20) /* USBFS FIFO 1 (DMA/DTC transfer request 1) */
         #define USBFS_FIFO_1_IRQn          ((IRQn_Type) 20) /* USBFS FIFO 1 (DMA/DTC transfer request 1) */
+        #define VECTOR_NUMBER_SCI4_RXI ((IRQn_Type) 21) /* SCI4 RXI (Receive data full) */
+        #define SCI4_RXI_IRQn          ((IRQn_Type) 21) /* SCI4 RXI (Receive data full) */
+        #define VECTOR_NUMBER_SCI4_TXI ((IRQn_Type) 22) /* SCI4 TXI (Transmit data empty) */
+        #define SCI4_TXI_IRQn          ((IRQn_Type) 22) /* SCI4 TXI (Transmit data empty) */
+        #define VECTOR_NUMBER_SCI4_TEI ((IRQn_Type) 23) /* SCI4 TEI (Transmit end) */
+        #define SCI4_TEI_IRQn          ((IRQn_Type) 23) /* SCI4 TEI (Transmit end) */
+        #define VECTOR_NUMBER_SCI4_ERI ((IRQn_Type) 24) /* SCI4 ERI (Receive error) */
+        #define SCI4_ERI_IRQn          ((IRQn_Type) 24) /* SCI4 ERI (Receive error) */
         /* The number of entries required for the ICU vector table. */
-        #define BSP_ICU_VECTOR_NUM_ENTRIES (21)
+        #define BSP_ICU_VECTOR_NUM_ENTRIES (25)
 
         #ifdef __cplusplus
         }

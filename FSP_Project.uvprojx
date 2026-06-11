@@ -340,7 +340,7 @@
               <MiscControls>@./via/rasc_armclang.via</MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>..\keil_test;.\ra;.\ra_cfg;.\ra_gen;.\bsp;.\bsp\dwt;.\bsp\can;.\bsp\uart;.\bsp\gpio;.\bsp\usb;.\modules;.\modules\daemon;.\modules\controller;.\modules\step_motor;.\modules\message_center;.\modules\dummy_kinematic;.\modules\bluetooth;.\modules\vision;.\modules\remote;.\modules\wifi;.\application;.\src</IncludePath>
+              <IncludePath>..\keil_test;.\ra;.\ra_cfg;.\ra_gen;.\bsp;.\bsp\dwt;.\bsp\can;.\bsp\uart;.\bsp\gpio;.\bsp\usb;.\modules;.\modules\daemon;.\modules\controller;.\modules\step_motor;.\modules\wifi;.\modules\bluetooth;.\modules\message_center;.\modules\dummy_kinematic;.\modules\bluetooth;.\modules\vision;.\modules\remote;.\application;.\src</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -548,6 +548,16 @@
               <FileName>vision.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\modules\vision\vision.h</FilePath>
+            </File>
+            <File>
+              <FileName>wifi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\modules\wifi\wifi.c</FilePath>
+            </File>
+            <File>
+              <FileName>wifi.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\modules\wifi\wifi.h</FilePath>
             </File>
             <File>
               <FileName>bluetooth.c</FileName>

@@ -16,6 +16,7 @@ typedef struct {
     float joint5;
     float joint6;
 
+    // uint8_t gripper_state; // 0:关闭 1:打开
     uint16_t tailer; // 固定为0xFFFB   
 } Received_Data_s;
 

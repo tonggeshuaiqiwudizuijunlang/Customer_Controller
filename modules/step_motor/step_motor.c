@@ -1,10 +1,10 @@
 #include "step_motor.h"
-
+#include "robot_types.h"
 /* CAN 监听实例 */
-static CANInstance *Joint_can_instance = NULL;
+CANInstance *Joint_can_instance = NULL;
 /* Dummy 电机实例 */
-static Joint_t dummy_joints[ARM_JOINT_COUNT + 1];
-static StepMotor_Config_t joint_configs[ARM_JOINT_COUNT + 1];
+Joint_t dummy_joints[ARM_JOINT_COUNT + 1];
+StepMotor_Config_t joint_configs[ARM_JOINT_COUNT + 1];
 /* 全局单例初始化标记 */
 static bool is_driver_initialized = false;
 
@@ -78,7 +78,7 @@ static void Joint_Motor_Callback(CANInstance *_instance)
         }
         if (_instance->rx_len >= 5)
             joint->is_finished = _instance->rx_buff[4];
-        
+
         break;
     }
     case CMD_GET_OFFSET: // 0x24 Response
@@ -108,8 +108,9 @@ static void Joint_Motor_LostCallback(void *motor_ptr)
 /* 初始化函数 */
 void Joint_Motor_Init(StepMotor_Config_t *configs)
 {
-    if (is_driver_initialized) return;
-    
+    if (is_driver_initialized)
+        return;
+
     // 1. 初始化 CAN BSP (注册回调放在前面)
     CAN_Init_Config_s conf;
     conf.p_ctrl = &motor_ctrl_can_ctrl;
@@ -117,9 +118,11 @@ void Joint_Motor_Init(StepMotor_Config_t *configs)
     conf.can_module_callback = Joint_Motor_Callback;
     Joint_can_instance = BSP_CAN_Init(&conf);
     // 2. 保存配置
-    if(configs != NULL) {
-        for(uint8_t i=1; i<=ARM_JOINT_COUNT; i++) {
-            joint_configs[i] = configs[i-1]; // 传入数组0-5，存入1-6
+    if (configs != NULL)
+    {
+        for (uint8_t i = 1; i <= ARM_JOINT_COUNT; i++)
+        {
+            joint_configs[i] = configs[i - 1]; // 传入数组0-6，存入1-7
         }
     }
     /* 1. 清空结构体 */
@@ -147,18 +150,20 @@ void Joint_Motor_Enable(uint8_t id, bool enable)
  */
 void Joint_Motor_Set_Pos_With_SpeedLimit(uint8_t id, float angle_degree, float speed_limit_degree)
 {
-    if (id < 1 || id > ARM_JOINT_COUNT) return;
+    if (id < 1 || id > ARM_JOINT_COUNT)
+        return;
 
     // 1. 获取配置
     float ratio = joint_configs[id].reduction_ratio;
-    if (ratio < 0.001f) ratio = 1.0f; // 避免除零
+    if (ratio < 0.001f)
+        ratio = 1.0f; // 避免除零
 
     // 2. 角度(度) -> 电机圈数
     // 公式: 电机圈数 = (关节角度 / 360) * 减速比
-    // if(joint_configs[id].joint_max_angle < angle_degree)
-    //     angle_degree = joint_configs[id].joint_max_angle;
-    // if (joint_configs[id].joint_min_angle > angle_degree)
-    //     angle_degree = joint_configs[id].joint_min_angle;
+    if (joint_configs[id].joint_max_angle < angle_degree)
+        angle_degree = joint_configs[id].joint_max_angle;
+    if (joint_configs[id].joint_min_angle > angle_degree)
+        angle_degree = joint_configs[id].joint_min_angle;
 
     float target_motor_turns = (angle_degree / 360.0f) * ratio;
     // 3. 处理方向反转
@@ -186,21 +191,23 @@ void Joint_Motor_Set_Pos_With_SpeedLimit(uint8_t id, float angle_degree, float s
  */
 void Joint_Motor_Set_Pos_With_Time(uint8_t id, float angle_degree, float time_limit)
 {
-    if (id < 1 || id > ARM_JOINT_COUNT) return;
+    if (id < 1 || id > ARM_JOINT_COUNT)
+        return;
 
     // 1. 获取配置
     float ratio = joint_configs[id].reduction_ratio;
-    if (ratio < 0.001f) ratio = 1.0f; // 避免除零
+    if (ratio < 0.001f)
+        ratio = 1.0f; // 避免除零
 
     // 2. 角度(度) -> 电机圈数
     // 公式: 电机圈数 = (关节角度 / 360) * 减速比
-    if(joint_configs[id].joint_max_angle < angle_degree)
+    if (joint_configs[id].joint_max_angle < angle_degree)
         angle_degree = joint_configs[id].joint_max_angle;
     if (joint_configs[id].joint_min_angle > angle_degree)
         angle_degree = joint_configs[id].joint_min_angle;
 
     float target_motor_turns = (angle_degree / 360.0f) * ratio;
-    
+
     // 3. 处理方向反转
     if (joint_configs[id].reverse_flag)
         target_motor_turns = -target_motor_turns;
@@ -324,6 +331,93 @@ void Joint_All_Motor_Set(float joint1_angle, float joint2_angle, float joint3_an
 
 void CANTransmit_Test(void)
 {
-
 }
 
+// ==========================
+// 夹爪控制状态机 API
+// ==========================
+
+#define GRIPPER_STATE_IDLE 0      // 空闲
+#define GRIPPER_STATE_WAIT_LOAD 1 // 等待受力
+#define GRIPPER_STATE_LOCKED 2    // 已锁定
+
+/**
+ * @brief 夹爪状态机任务
+ * @param config       夹爪的各项参数配置结构体
+ * @param gripper_mode 当前夹爪模式要求 (0: 松开, 1: 自动力控抓取)
+ */
+void Joint_Motor_Gripper_Task(Gripper_Config_t *config, uint8_t gripper_mode)
+{
+    if (config == NULL || config->id == 0 || config->id > ARM_JOINT_COUNT)
+        return;
+
+    static uint8_t grab_state = GRIPPER_STATE_IDLE;
+    static uint32_t loop_count = 0; // 按RTOS周期累加计数器
+
+    uint8_t id = config->id;
+
+    if (gripper_mode == GRIPPER_RELEASE)
+    {
+        // 只要是释放模式，就一直给它发松开的位置或者单次发（这里为了让它动，直接下发位置）
+        Joint_Motor_Set_Pos_With_SpeedLimit(id, config->release_angle, config->speed_limit);
+        grab_state = GRIPPER_STATE_IDLE;
+        loop_count = 0;
+    }
+    else if (gripper_mode == GRIPPER_AUTO_GRAB)
+    {
+        if (grab_state == GRIPPER_STATE_IDLE)
+        {
+            // 从空闲切成抓取，开始往目标点进发
+            dummy_joints[id].current = 0.0f; // 清除历史反馈电流
+            Joint_Motor_Set_Pos_With_SpeedLimit(id, config->target_grab_angle, config->speed_limit);
+            grab_state = GRIPPER_STATE_WAIT_LOAD;
+        }
+        else if (grab_state == GRIPPER_STATE_WAIT_LOAD)
+        {
+            // 正在抓取途中，开始监测电流
+            static uint8_t query_div = 0;
+            if (++query_div >= 5)
+            {
+                query_div = 0;
+                Send_Generic(id, CMD_GET_CURRENT, NULL, 0);
+            }
+
+            float actual_current = dummy_joints[id].current;
+            float abs_current = (actual_current > 0) ? actual_current : -actual_current;
+
+            if (abs_current >= config->stop_threshold_current)
+            {
+                loop_count++;
+                if (loop_count > config->timeout_loops) // 堵转确认
+                {
+                    if (loop_count > 2 * config->timeout_loops)
+                        loop_count = 2 * config->timeout_loops;
+
+                    float dir_sign = (config->target_grab_angle > config->release_angle) ? 1.0f : -1.0f;
+                    float hold_angle = dummy_joints[id].reduction_angle + (dir_sign * 3.0f);
+
+                    Joint_Motor_Set_Pos_With_SpeedLimit(id, hold_angle, config->speed_limit);
+
+                    grab_state = GRIPPER_STATE_LOCKED;
+                }
+            }
+            else
+                loop_count -= 50;
+        }
+        else if (grab_state == GRIPPER_STATE_LOCKED)
+        {
+            // 【防松开修复 2】：防止电机通信超时保护。
+            // 很多驱动器若2秒收不到任何报文就会自动停机掉力。在这里加一个慢速循环保持唤醒它。
+            static uint8_t keep_alive_div = 0;
+            if (++keep_alive_div >= 5) // 假设Task 10~20ms跑一次，这里约200~400ms发一次唤醒包
+            {
+                keep_alive_div = 0;
+                Send_Generic(id, CMD_GET_CURRENT, NULL, 0); // 用查询指令当作心跳包喂狗
+            }
+            float dir_sign = (config->target_grab_angle > config->release_angle) ? 1.0f : -1.0f;
+            float hold_angle = dummy_joints[id].reduction_angle + (dir_sign * 3.0f);
+
+            Joint_Motor_Set_Pos_With_SpeedLimit(id, hold_angle, config->speed_limit);
+        }
+    }
+}

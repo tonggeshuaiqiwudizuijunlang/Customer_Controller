@@ -230,13 +230,13 @@ FSP Configuration
       P501 141 SCI5_TXD5 - Low None "Peripheral mode" CMOS None "ADC1: AN117; AGT0: AGTOB0; GPT_OPS0: GTIV; ICU0: IRQ11; QSPI0: QSSL; SCI5: SDA5; SCI5: TXD5; USB_FS0: USB_OVRCURA" - IO - - 
       P502 142 SCI5_RXD5 - Low None "Peripheral mode" CMOS None "ADC1: AN118; AGT2: AGTOA2; GPT_OPS0: GTIW; ICU0: IRQ12; QSPI0: QIO0; SCI5: RXD5; SCI5: SCL5; SCI6: CTS6; USB_FS0: USB_OVRCURB" - IO - - 
       P503 143 - - - - Disabled - - "ADC1: AN119; AGT2: AGTOB2; GPT_POEG2: GTETRGC; QSPI0: QIO1; SCI5: SCK5; SCI6: CTSRTS6; USB_FS0: USB_EXICEN" - None - - 
-      P504 144 GPIO WIFI_BOOT Low - "Output mode (Initial High)" CMOS - "ADC1: AN120; AGT3: AGTOA3; BUS_ASYNCH0: ALE; GPT_POEG3: GTETRGD; QSPI0: QIO2; SCI5: CTSRTS5; SCI6: SCK6; USB_FS0: USB_ID" - IO - - 
+      P504 144 - WIFI_BOOT - - Disabled - - "ADC1: AN120; AGT3: AGTOA3; BUS_ASYNCH0: ALE; GPT_POEG3: GTETRGD; QSPI0: QIO2; SCI5: CTSRTS5; SCI6: SCK6; USB_FS0: USB_ID" - None - - 
       P505 145 SCI6_RXD6 - High None "Peripheral mode" CMOS None "ADC1: AN121; AGT3: AGTOB3; ICU0: IRQ14; QSPI0: QIO3; SCI6: RXD6; SCI6: SCL6" - IO - - 
       P506 146 SCI6_TXD6 - High None "Peripheral mode" CMOS None "ADC1: AN122; ICU0: IRQ15; SCI6: SDA6; SCI6: TXD6" - IO - - 
-      P507 147 GPIO WIFI_WAKE High - "Output mode (Initial High)" CMOS - "ADC1: AN123; SCI5: SCK5; SCI6: SCK6" - IO - - 
-      P508 148 GPIO WIFI_RESET High - "Output mode (Initial High)" CMOS - "ADC1: AN124; SCI5: CTSRTS5" - IO - - 
-      P511 176 - - - - Disabled - - "CAN1: CRX1; GPT0: GTIOC0B; ICU0: IRQ15; IIC1: SDA1; SCI4: RXD4; SCI4: SCL4" - None - - 
-      P512 175 - - - - Disabled - - "CAN1: CTX1; GPT0: GTIOC0A; ICU0: IRQ14; IIC1: SCL1; SCI4: SDA4; SCI4: TXD4" - None - - 
+      P507 147 - WIFI_WAKE - - Disabled - - "ADC1: AN123; SCI5: SCK5; SCI6: SCK6" - None - - 
+      P508 148 - WIFI_RESET - - Disabled - - "ADC1: AN124; SCI5: CTSRTS5" - None - - 
+      P511 176 SCI4_RXD4 - Low None "Peripheral mode" CMOS None "CAN1: CRX1; GPT0: GTIOC0B; ICU0: IRQ15; IIC1: SDA1; SCI4: RXD4; SCI4: SCL4" - IO - - 
+      P512 175 SCI4_TXD4 - Low None "Peripheral mode" CMOS None "CAN1: CTX1; GPT0: GTIOC0A; ICU0: IRQ14; IIC1: SCL1; SCI4: SDA4; SCI4: TXD4" - IO - - 
       P513 174 - - - - Disabled - - "SCI5: RXD5; SCI5: SCL5" - None - - 
       P600 122 - - - - Disabled - - "AGT3: AGTIO3; BUS_ASYNCH0: RD; CAC0: CACREF; CGC0: CLKOUT; GPT6: GTIOC6B; OSPI0: OMSIO4; SCI9: SCK9" - None - - 
       P601 121 - - - - Disabled - - "AGT3: AGTEE3; BUS_ASYNCH0: WR; GPT6: GTIOC6A; OSPI0: OMSIO2; SCI9: RXD9; SCI9: SCL9" - None - - 
@@ -716,12 +716,12 @@ FSP Configuration
       Extra: RS-485: DE Pin Number: Disabled
       Interrupts: Callback: UART_Global_Callback
       Interrupts: Receive Interrupt Priority: Priority 5
-      Interrupts: Transmit Data Empty Interrupt Priority: Priority 12
+      Interrupts: Transmit Data Empty Interrupt Priority: Priority 5
       Interrupts: Transmit End Interrupt Priority: Priority 12
       Interrupts: Error Interrupt Priority: Priority 12
       
-      Instance "wifi_dtc_transfer Transfer (r_dtc) SCI6 TXI (Transmit data empty)"
-        Name: wifi_dtc_transfer
+      Instance "wifi_dtc_transfer0 Transfer (r_dtc) SCI6 TXI (Transmit data empty)"
+        Name: wifi_dtc_transfer0
         Mode: Normal
         Transfer Size: 1 Byte
         Destination Address Mode: Fixed
@@ -752,6 +752,61 @@ FSP Configuration
         USBHS D1FIFO Interrupt Priority: Not Supported
         USB Callback: usb_cdc_callback
         USB Callback Context: NULL
+        
+    Instance "bt_uart UART (r_sci_uart)"
+      General: Name: bt_uart
+      General: Channel: 4
+      General: Data Bits: 8bits
+      General: Parity: None
+      General: Stop Bits: 1bit
+      Baud: Baud Rate: 38400
+      Baud: Baud Rate Modulation: Disabled
+      Baud: Max Error (%): 5
+      Flow Control: CTS/RTS Selection: Hardware RTS
+      Flow Control: Software RTS Port: Disabled
+      Flow Control: Software RTS Pin: Disabled
+      Extra: Clock Source: Internal Clock
+      Extra: Start bit detection: Falling Edge
+      Extra: Noise Filter: Disable
+      Extra: Receive FIFO Trigger Level: Max
+      Extra: IrDA: Enable: Disabled
+      Extra: IrDA: RXD Polarity Switching: Normal
+      Extra: IrDA: TXD Polarity Switching: Normal
+      Extra: RS-485: DE Pin: Disable
+      Extra: RS-485: DE Pin Polarity: Active High
+      Extra: RS-485: DE Port Number: Disabled
+      Extra: RS-485: DE Pin Number: Disabled
+      Interrupts: Callback: UART_Global_Callback
+      Interrupts: Receive Interrupt Priority: Priority 5
+      Interrupts: Transmit Data Empty Interrupt Priority: Priority 5
+      Interrupts: Transmit End Interrupt Priority: Priority 12
+      Interrupts: Error Interrupt Priority: Priority 12
+      
+      Instance "bt_transfer0 Transfer (r_dtc) SCI4 TXI (Transmit data empty)"
+        Name: bt_transfer0
+        Mode: Normal
+        Transfer Size: 1 Byte
+        Destination Address Mode: Fixed
+        Source Address Mode: Incremented
+        Repeat Area (Unused in Normal Mode): Source
+        Interrupt Frequency: After all transfers have completed
+        Number of Transfers: 0
+        Number of Blocks (Valid only in Block Mode): 0
+        Number of Transfer Descriptors: 1
+        Activation Source: SCI4 TXI (Transmit data empty)
+        
+      Instance "bt_transfer1 Transfer (r_dtc) SCI4 RXI (Receive data full)"
+        Name: bt_transfer1
+        Mode: Normal
+        Transfer Size: 1 Byte
+        Destination Address Mode: Incremented
+        Source Address Mode: Fixed
+        Repeat Area (Unused in Normal Mode): Destination
+        Interrupt Frequency: After all transfers have completed
+        Number of Transfers: 0
+        Number of Blocks (Valid only in Block Mode): 0
+        Number of Transfer Descriptors: 1
+        Activation Source: SCI4 RXI (Receive data full)
         
   Thread "MotorCtrlTask"
     Symbol: motor_ctrl_task

@@ -1,4 +1,4 @@
-#Thu Mar 05 19:57:14 CST 2026
+#Sat Mar 28 06:49:00 CST 2026
 com.renesas.cdt.ddsc.content/com.renesas.cdt.ddsc.content.defaultlinkerscript=script/fsp.scat
 com.renesas.cdt.ddsc.contentgen.options/options/suppresswarningspaths=ra/arm,ra/aws
 com.renesas.cdt.ddsc.packs.componentfiles/AWS\#\#Heaps\#\#FreeRTOS\#\#heap_4\#\#\#\#11.1.0+fsp.6.3.0/all=271572837,ra/aws/FreeRTOS/FreeRTOS/Source/portable/MemMang/heap_4.c
@@ -43,4 +43,5 @@ com.renesas.cdt.ddsc.threads.configurator/collapse/module.driver.basic_on_usb.11
 com.renesas.cdt.ddsc.threads.configurator/collapse/module.driver.pcdc_on_usb.964882539=false
 com.renesas.cdt.ddsc.threads.configurator/collapse/module.driver.uart_on_sci_uart.1149726885=false
 com.renesas.cdt.ddsc.threads.configurator/collapse/module.driver.uart_on_sci_uart.1153760500=false
+com.renesas.cdt.ddsc.threads.configurator/collapse/module.driver.uart_on_sci_uart.1723150850=false
 com.renesas.cdt.ddsc.threads.configurator/collapse/module.driver.uart_on_sci_uart.658479762=false

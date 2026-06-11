@@ -23,7 +23,7 @@ static void limit_joint_angles(Dummy_Ctrl_Cmd_s *cmd);
 void DummyCmd_Init(void)
 {
     DWT_Init(200);
-    bt_rx_data = BT_Init(&wifi_uart_ctrl, &wifi_uart_cfg);
+    bt_rx_data = BT_Init(&bt_uart_ctrl, &bt_uart_cfg);
     vision_rx_data = Vision_Init(&pc_uart_ctrl, &pc_uart_cfg);
     mc_data = MCControlInit(&sbus_ctrl, &sbus_cfg);
     dummy_cmd_pub = PubRegister("dummy_cmd", sizeof(Dummy_Ctrl_Cmd_s));
@@ -48,15 +48,23 @@ void MC_Remote_Ctrl(void)
     else if (mc_data[TEMP].switch_r == MC_SW_MID)
     {
         dummy_cmd_send.arm_mode = ARM_FREE_MODE;
+        
+        // 当左侧拨杆状态发生变化时，根据当前状态刷新夹爪命令
+        if (mc_data[TEMP].switch_l != mc_data[LAST].switch_l)
+        {
+            if (mc_data[TEMP].switch_l == MC_SW_DOWN)
+            {
+                dummy_cmd_send.gripper_mode = GRIPPER_AUTO_GRAB;
+            }
+            else
+            {
+                dummy_cmd_send.gripper_mode = GRIPPER_RELEASE; // 其他摇杆状态下松开夹爪
+            }
+        }
+
         if (mc_data[TEMP].switch_l == MC_SW_DOWN)
         {
-            // dummy_cmd_send.gripper_mode = GRIPPER_AUTO_GRAB;
-            dummy_cmd_send.joint1_angle = 0.0f;
-            dummy_cmd_send.joint2_angle = 0.0f;
-            dummy_cmd_send.joint3_angle = 0.0f;
-            dummy_cmd_send.joint4_angle = 0.0f;
-            dummy_cmd_send.joint5_angle = 0.0f;
-            dummy_cmd_send.joint6_angle = 0.0f;
+            // 通过摇杆控制发送自动抓取命令给下游处理
         }
         else if (mc_data[TEMP].switch_l == MC_SW_MID)
         {
@@ -100,8 +108,8 @@ static void limit_joint_angles(Dummy_Ctrl_Cmd_s *cmd)
     // if (cmd->joint1_angle > 170.0f)
     //     cmd->joint1_angle = 170.0f;
 
-    if (cmd->joint2_angle < 0.0f)
-        cmd->joint2_angle = 0.0f;
+    if (cmd->joint2_angle < -30.0f)
+        cmd->joint2_angle = -30.0f;
     if (cmd->joint2_angle > 150.0f)
         cmd->joint2_angle = 150.0f;
 
@@ -154,7 +162,7 @@ void Vision_Set_FeedData(void)
 
 void Bt_Set_FeedData(void)
 {
-    bt_tx_data.header = 0x5A;
+    bt_tx_data.header = 0xAA;
     bt_tx_data.joint1 = dummy_fetch_data.joint_motor[0].reduction_angle;
     bt_tx_data.joint2 = dummy_fetch_data.joint_motor[1].reduction_angle - 75.0f;
     bt_tx_data.joint3 = dummy_fetch_data.joint_motor[2].reduction_angle - 90.0f;
@@ -171,7 +179,6 @@ void Bt_Set_FeedData(void)
             break;
         }
     }
-
     // 根据要求，当所有电机完成时设置为11，否则为0
     bt_tx_data.is_finished = all_finished;
     bt_tx_data.tailer = 0XFFFB;

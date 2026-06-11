@@ -51,18 +51,18 @@
   ra\aws\FreeRTOS\FreeRTOS\Source\include\queue.h ra_gen\hal_data.h \
   ra_gen\common_data.h ra\fsp\inc\instances\r_ioport.h \
   ra\fsp\inc\api\r_ioport_api.h ra_cfg\fsp_cfg\r_ioport_cfg.h \
-  ra_cfg\fsp_cfg\bsp\bsp_pin_cfg.h ra\fsp\inc\instances\r_usb_basic.h \
+  ra_cfg\fsp_cfg\bsp\bsp_pin_cfg.h ra\fsp\inc\instances\r_dtc.h \
+  ra\fsp\inc\api\r_transfer_api.h ra_cfg\fsp_cfg\r_dtc_cfg.h \
+  ra\fsp\inc\instances\r_sci_uart.h ra\fsp\inc\api\r_uart_api.h \
+  ra_cfg\fsp_cfg\r_sci_uart_cfg.h ra\fsp\inc\instances\r_usb_basic.h \
   ra_cfg\fsp_cfg\r_usb_basic_cfg.h ra\fsp\inc\api\r_usb_basic_api.h \
-  ra\fsp\inc\api\r_transfer_api.h \
   ra\fsp\inc\api\..\..\src\r_usb_basic\src\driver\inc\r_usb_basic_define.h \
   ra\aws\FreeRTOS\FreeRTOS\Source\include\timers.h \
-  ra\fsp\inc\api\r_usb_pcdc_api.h ra\fsp\inc\instances\r_dtc.h \
-  ra_cfg\fsp_cfg\r_dtc_cfg.h ra\fsp\inc\instances\r_sci_uart.h \
-  ra\fsp\inc\api\r_uart_api.h ra_cfg\fsp_cfg\r_sci_uart_cfg.h \
-  ra\fsp\inc\instances\r_canfd.h ra_cfg\fsp_cfg\r_canfd_cfg.h \
-  ra\fsp\inc\api\r_can_api.h application\dummy_motormatic.h \
-  modules\robot_types.h modules\step_motor\step_motor.h \
-  bsp\dwt\bsp_dwt.h bsp\can\bsp_can.h modules\daemon\daemon.h \
-  modules\motor_def.h modules\controller\controller.h \
+  ra\fsp\inc\api\r_usb_pcdc_api.h ra\fsp\inc\instances\r_canfd.h \
+  ra_cfg\fsp_cfg\r_canfd_cfg.h ra\fsp\inc\api\r_can_api.h \
+  application\dummy_motormatic.h modules\robot_types.h \
+  modules\step_motor\step_motor.h bsp\dwt\bsp_dwt.h bsp\can\bsp_can.h \
+  modules\daemon\daemon.h modules\motor_def.h \
+  modules\controller\controller.h \
   modules\message_center\message_center.h \
   modules\dummy_kinematic\dummy_kinematic_v2.h
