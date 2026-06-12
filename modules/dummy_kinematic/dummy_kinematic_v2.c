@@ -1,716 +1,1100 @@
 #include "dummy_kinematic_v2.h"
+#include <float.h>
+#include <string.h>
 
-/**
- * @brief 矩阵乘法
- * @param _m A的行数
- * @param _l A的列数 (也是B的行数)
- * @param _n B的列数
- */
-static void MatMultiply(const float *_matrix1, const float *_matrix2, float *_matrixOut,
-                        const int _m, const int _l, const int _n)
+#define IK_SOLVE_COUNT 8
+#define KINEMATIC_EPSILON 1e-6f
+#define CONTROLLER_POSE_SCALE_MM 1000.0f
+
+typedef struct {
+    double theta[6];
+} JointAngles;
+
+typedef struct {
+    double d[6];
+    double a[6];
+    double alpha[6];
+} DHParameters;
+
+typedef struct {
+    double roll;
+    double pitch;
+    double yaw;
+} EulerAngles;
+
+typedef struct {
+    double x;
+    double y;
+    double z;
+} Vector3;
+
+typedef struct {
+    double m[4][4];
+} Matrix4x4;
+
+typedef struct {
+    double m[3][3];
+} Matrix3x3;
+
+typedef struct {
+    Vector3 position;
+    Matrix3x3 rotation;
+    Matrix4x4 transform;
+} EndEffectorState;
+
+typedef struct {
+    JointAngles angles[8];
+    int count;
+} InverseKinematicsSolutions;
+
+static double Deg_To_Rad(double deg)
 {
-    float tmp;
-    int i, j, k;
-    for (i = 0; i < _m; i++)
+    return deg * M_PI / 180.0;
+}
+
+static double Rad_To_Deg(double rad)
+{
+    return rad * 180.0 / M_PI;
+}
+
+static double Normalize_Angle(double angle)
+{
+    while (angle > M_PI)
+        angle -= 2.0 * M_PI;
+    while (angle < -M_PI)
+        angle += 2.0 * M_PI;
+    return angle;
+}
+
+static Matrix4x4 Identity_Matrix4x4(void)
+{
+    Matrix4x4 I;
+    for (int i = 0; i < 4; i++)
     {
-        for (j = 0; j < _n; j++)
+        for (int j = 0; j < 4; j++)
         {
-            tmp = 0.0f;
-            for (k = 0; k < _l; k++)
+            I.m[i][j] = (i == j) ? 1.0 : 0.0;
+        }
+    }
+    return I;
+}
+
+static Matrix4x4 Matrix4x4_Multiply(const Matrix4x4 *A, const Matrix4x4 *B)
+{
+    Matrix4x4 C;
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            C.m[i][j] = 0.0;
+            for (int k = 0; k < 4; k++)
             {
-                tmp += _matrix1[_l * i + k] * _matrix2[_n * k + j];
+                C.m[i][j] += A->m[i][k] * B->m[k][j];
             }
-            _matrixOut[_n * i + j] = tmp;
         }
     }
+    return C;
 }
 
-/**
- * @brief 旋转矩阵转欧拉角 (ZYX顺序: Roll->Pitch->Yaw)
- *        用于正解计算末端姿态
- */
-static void RotMatToEulerAngle(const float *_rotationM, float *_eulerAngles)
+static Matrix4x4 Transform_From_Rotation_And_Position(const Matrix3x3 *R, const Vector3 *p)
 {
-    float A, B, C;
+    Matrix4x4 T = Identity_Matrix4x4();
 
-    // 检查 Gimbal Lock (万向锁) 情况
-    if (fabsf(_rotationM[6]) >= 1.0f - 0.0001f)
+    for (int i = 0; i < 3; i++)
     {
-        if (_rotationM[6] < 0)
+        for (int j = 0; j < 3; j++)
         {
-            A = 0.0f;
-            B = (float)M_PI_2;
-            C = -atan2f(_rotationM[1], _rotationM[4]);
+            T.m[i][j] = R->m[i][j];
         }
-        else
-        {
-            A = 0.0f;
-            B = -(float)M_PI_2;
-            C = -atan2f(_rotationM[1], _rotationM[4]);
-        }
+    }
+
+    T.m[0][3] = p->x;
+    T.m[1][3] = p->y;
+    T.m[2][3] = p->z;
+    return T;
+}
+
+static Matrix3x3 Euler_To_Rotation_Matrix(double roll, double pitch, double yaw)
+{
+    Matrix3x3 R;
+    double cr = cos(roll);
+    double sr = sin(roll);
+    double cp = cos(pitch);
+    double sp = sin(pitch);
+    double cy = cos(yaw);
+    double sy = sin(yaw);
+
+    R.m[0][0] = cy * cp;
+    R.m[0][1] = cy * sp * sr - sy * cr;
+    R.m[0][2] = cy * sp * cr + sy * sr;
+
+    R.m[1][0] = sy * cp;
+    R.m[1][1] = sy * sp * sr + cy * cr;
+    R.m[1][2] = sy * sp * cr - cy * sr;
+
+    R.m[2][0] = -sp;
+    R.m[2][1] = cp * sr;
+    R.m[2][2] = cp * cr;
+    return R;
+}
+
+static EulerAngles Rotation_Matrix_To_Euler(const Matrix3x3 *R)
+{
+    EulerAngles euler;
+    double sy = sqrt(R->m[0][0] * R->m[0][0] + R->m[1][0] * R->m[1][0]);
+
+    if (sy > 1e-6)
+    {
+        euler.roll = atan2(R->m[2][1], R->m[2][2]);
+        euler.pitch = atan2(-R->m[2][0], sy);
+        euler.yaw = atan2(R->m[1][0], R->m[0][0]);
     }
     else
     {
-        // 正常情况求解
-        B = atan2f(-_rotationM[6], sqrtf(_rotationM[0] * _rotationM[0] + _rotationM[3] * _rotationM[3]));
-        float cb = cosf(B);
-        // 防止除零
-        if (fabsf(cb) < 0.0001f)
-            cb = 0.0001f;
-        A = atan2f(_rotationM[3] / cb, _rotationM[0] / cb);
-        C = atan2f(_rotationM[7] / cb, _rotationM[8] / cb);
+        euler.roll = atan2(-R->m[1][2], R->m[1][1]);
+        euler.pitch = atan2(-R->m[2][0], sy);
+        euler.yaw = 0.0;
     }
-    // 保持计算不变，修正返回
-    _eulerAngles[0] = A; // Yaw (Z) ← A 算的是 yaw
-    _eulerAngles[1] = B; // Pitch (Y)
-    _eulerAngles[2] = C; // Roll (X) ← C 算的是 roll
+    return euler;
 }
 
-/**
- * @brief 欧拉角转旋转矩阵
- *        用于逆解时将目标姿态转为矩阵
- */
-static void EulerAngleToRotMat(const float *_eulerAngles, float *_rotationM)
+static EndEffectorState Create_End_Effector_State(const Vector3 *position, const EulerAngles *orientation)
 {
-    // 明确命名，避免混淆
-    float cy = cosf(_eulerAngles[0]), sy = sinf(_eulerAngles[0]);  // Yaw   (Z)
-    float cp = cosf(_eulerAngles[1]), sp = sinf(_eulerAngles[1]);  // Pitch (Y)
-    float cr = cosf(_eulerAngles[2]), sr = sinf(_eulerAngles[2]);  // Roll  (X)
-
-    // R = Rz * Ry * Rx
-    _rotationM[0] = cy * cp;
-    _rotationM[1] = cy * sp * sr - sy * cr;
-    _rotationM[2] = cy * sp * cr + sy * sr;
-    
-    _rotationM[3] = sy * cp;
-    _rotationM[4] = sy * sp * sr + cy * cr;
-    _rotationM[5] = sy * sp * cr - cy * sr;
-    
-    _rotationM[6] = -sp;
-    _rotationM[7] = cp * sr;
-    _rotationM[8] = cp * cr;
+    EndEffectorState state;
+    state.position = *position;
+    state.rotation = Euler_To_Rotation_Matrix(orientation->roll, orientation->pitch, orientation->yaw);
+    state.transform = Transform_From_Rotation_And_Position(&state.rotation, position);
+    return state;
 }
 
-
-// -------------------------------------------------------------------------
-//                            核心接口实现
-// -------------------------------------------------------------------------
-
-/**
- * @brief 初始化运动学句柄
- */
-void Kinematic_Init(DOF6Kinematic_Handle_t *handle, const ArmConfig_t *config)
+static Matrix4x4 DH_Transform(double theta, double d, double a, double alpha)
 {
-    // 1. 深拷贝配置参数
-    memcpy(&handle->config, config, sizeof(ArmConfig_t));
-    
-    // 为了写代码方便，定义局部指针指向配置
-    const ArmConfig_t *cfg = &handle->config;
+    Matrix4x4 T;
+    double ct = cos(theta);
+    double st = sin(theta);
+    double ca = cos(alpha);
+    double sa = sin(alpha);
 
-    // 2. 初始化标准 DH 参数矩阵 [theta, d, a, alpha]
-    // 使用配置中的参数填充
-    // float tmp_DH[6][4] = {
-    //     {0.0f,                       cfg->L_BASE,    cfg->D_BASE,  -(float)M_PI_2},
-    //     {-75.0f * DEG_TO_RAD_CONST,  0.0f,           cfg->L_ARM,   0.0f},
-    //     {-90.0f * DEG_TO_RAD_CONST,  cfg->D_ELBOW,   0.0f,         (float)M_PI_2},
-    //     {0.0f,                       cfg->L_FOREARM, 0.0f,         -(float)M_PI_2},
-    //     {0.0f,                       0.0f,           0.0f,         (float)M_PI_2},
-    //     {0.0f,                       cfg->L_WRIST,   0.0f,         0.0f}
-    // };
-    float tmp_DH[6][4] = {
-        {0.0f,                       cfg->L_BASE,    cfg->D_BASE,  -(float)M_PI_2},
-        {0.0f,                       0.0f,           cfg->L_ARM,   0.0f},
-        {0.0f,                       cfg->D_ELBOW,   0.0f,         (float)M_PI_2},
-        {0.0f,                       cfg->L_FOREARM, 0.0f,         -(float)M_PI_2},
-        {0.0f,                       0.0f,           0.0f,         (float)M_PI_2},
-        {0.0f,                       cfg->L_WRIST,   0.0f,         0.0f}
-    };    
-    memcpy(handle->DH_matrix, tmp_DH, sizeof(tmp_DH));
-    // 3. 预计算向量
-    float tmp_L1[3] = {cfg->D_BASE, -cfg->L_BASE, 0.0f};
-    memcpy(handle->L1_base, tmp_L1, sizeof(tmp_L1));
-    
-    float tmp_L2[3] = {cfg->L_ARM, 0.0f, 0.0f};
-    memcpy(handle->L2_arm, tmp_L2, sizeof(tmp_L2));
-    
-    float tmp_L3[3] = {-cfg->D_ELBOW, 0.0f, cfg->L_FOREARM};
-    memcpy(handle->L3_elbow, tmp_L3, sizeof(tmp_L3));
-
-    float tmp_L6[3] = {0.0f, 0.0f, cfg->L_WRIST};
-    memcpy(handle->L6_wrist, tmp_L6, sizeof(tmp_L6));
-
-    // 4. 预计算平方项
-    handle->l_se_2 = cfg->L_ARM * cfg->L_ARM;
-    handle->l_se = cfg->L_ARM;
-    handle->l_ew_2 = cfg->L_FOREARM * cfg->L_FOREARM + cfg->D_ELBOW * cfg->D_ELBOW;
-
-    // 5. 立即计算完整几何参数, 避免运行时 Lazy Init
-    // 如果 l_ew (Effective Wrist Length) 为 0 (未初始化状态), 会导致除0错误
-    // 肘部到腕部的直线距离 (小臂有效长度)
-    // l_ew = sqrt(forearm^2 + elbow_offset^2)
-    if (handle->l_ew_2 > 0.000001f)
-        handle->l_ew = sqrtf(handle->l_ew_2);
-    else
-        handle->l_ew = 0.0f;
-    // 计算肘部固有偏移角度 (Atan Elbow)
-    // 这是由于 D_ELBOW 造成的结构性偏移角
-    // 假设 D_ELBOW 相对于 L_FOREARM 是垂直关系
-    // atan_e = atan2(D_ELBOW, L_FOREARM)
-    // 注意: 具体正负号取决于结构定义, 这里假设 D_ELBOW 使小臂"翘起"
-    handle->atan_e = atan2f(cfg->D_ELBOW, cfg->L_FOREARM);
+    T.m[0][0] = ct;
+    T.m[0][1] = -st * ca;
+    T.m[0][2] = st * sa;
+    T.m[0][3] = a * ct;
+    T.m[1][0] = st;
+    T.m[1][1] = ct * ca;
+    T.m[1][2] = -ct * sa;
+    T.m[1][3] = a * st;
+    T.m[2][0] = 0.0;
+    T.m[2][1] = sa;
+    T.m[2][2] = ca;
+    T.m[2][3] = d;
+    T.m[3][0] = 0.0;
+    T.m[3][1] = 0.0;
+    T.m[3][2] = 0.0;
+    T.m[3][3] = 1.0;
+    return T;
 }
 
-// --- FK 核心算法 ---
-
-/**
- * @brief 正运动学解算 (Joints -> Pose)
- *        使用改进的标准 DH 参数法，与 Init 中的 DH 表对其
- */
-bool Kinematic_SolveFK(const DOF6Kinematic_Handle_t *handle, const Joint6D_t *inputJoints, Pose6D_t *outputPose)
+static void Config_To_DH(const ArmConfig_t *config, DHParameters *dh)
 {
-    // 标准 DH 转换矩阵 T_i-1,i
-    // [ ct   -st*ca   st*sa   a*ct ]
-    // [ st    ct*ca  -ct*sa   a*st ]
-    // [ 0     sa      ca      d    ]
-    // [ 0     0       0       1    ]
+    for (uint8_t i = 0; i < 6; i++)
+    {
+        dh->d[i] = config->dh.d[i];
+        dh->a[i] = config->dh.a[i];
+        dh->alpha[i] = config->dh.alpha[i];
+    }
+}
 
-    float T_total[16]; // T0_i
-    float T_next[16];  // T_i-1_i
-    float T_tmp[16];   // Temp
-
-    // 初始化为单位矩阵
-    memset(T_total, 0, sizeof(T_total));
-    T_total[0] = 1.0f; T_total[5] = 1.0f; T_total[10] = 1.0f; T_total[15] = 1.0f;
+static EndEffectorState Forward_Kinematics(const JointAngles *angles, const DHParameters *dh)
+{
+    EndEffectorState state;
+    Matrix4x4 T = Identity_Matrix4x4();
 
     for (int i = 0; i < 6; i++)
     {
-        // 1. 获取 DH 参数 (来自 Kinematic_Init 初始化)
-        float theta_offset = handle->DH_matrix[i][0];
-        float d            = handle->DH_matrix[i][1];
-        float a            = handle->DH_matrix[i][2];
-        float alpha        = handle->DH_matrix[i][3];
-
-        // 2. 实际关节角 (输入角度转弧度 + 偏移)
-        float theta = inputJoints->a[i] * DEG_TO_RAD_CONST + theta_offset;
-
-        // 3. 计算当前变换矩阵 T (使用标准DH公式)
-        float ct = cosf(theta);
-        float st = sinf(theta);
-        float ca = cosf(alpha);
-        float sa = sinf(alpha);
-
-        T_next[0] = ct;   T_next[1] = -st*ca;  T_next[2] = st*sa;   T_next[3] = a*ct;
-        T_next[4] = st;   T_next[5] = ct*ca;   T_next[6] = -ct*sa;  T_next[7] = a*st;
-        T_next[8] = 0;    T_next[9] = sa;      T_next[10] = ca;     T_next[11] = d;
-        T_next[12] = 0;   T_next[13] = 0;      T_next[14] = 0;      T_next[15] = 1;
-
-        // 4. 累乘: T_total = T_total * T_next
-        MatMultiply(T_total, T_next, T_tmp, 4, 4, 4);
-        memcpy(T_total, T_tmp, sizeof(float)*16);
+        Matrix4x4 Ti = DH_Transform(angles->theta[i], dh->d[i], dh->a[i], dh->alpha[i]);
+        T = Matrix4x4_Multiply(&T, &Ti);
     }
 
-    // 提取旋转矩阵并转欧拉角
-    float R06[9];
-    R06[0] = T_total[0]; R06[1] = T_total[1]; R06[2] = T_total[2];
-    R06[3] = T_total[4]; R06[4] = T_total[5]; R06[5] = T_total[6];
-    R06[6] = T_total[8]; R06[7] = T_total[9]; R06[8] = T_total[10];
+    state.transform = T;
+    state.position.x = T.m[0][3];
+    state.position.y = T.m[1][3];
+    state.position.z = T.m[2][3];
 
-    // 回填旋转矩阵到 outputPose
-    memcpy(outputPose->R, R06, 9 * sizeof(float));
-    outputPose->hasR = true;
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            state.rotation.m[i][j] = T.m[i][j];
+        }
+    }
+    return state;
+}
 
-    // 计算欧拉角 (Euler ZYX -> Roll Pitch Yaw)
-    float euler[3];
-    RotMatToEulerAngle(R06, euler);
-    
-    // 提取位置 (最后一列的 X, Y, Z)
-    // T_total = [ R  P ]
-    //           [ 0  1 ]
-    outputPose->X = T_total[3]; // X
-    outputPose->Y = T_total[7]; // Y
-    outputPose->Z = T_total[11]; // Z
-    // 转回角度制,RotMatToEulerAngle 返回: euler[0]=yaw, [1]=pitch, [2]=roll
-    outputPose->A = euler[0] * RAD_TO_DEG_CONST;  // Yaw   (Z-axis rotation)
-    outputPose->B = euler[1] * RAD_TO_DEG_CONST;  // Pitch (Y-axis rotation)  
-    outputPose->C = euler[2] * RAD_TO_DEG_CONST;  // Roll  (X-axis rotation)
+static InverseKinematicsSolutions Inverse_Kinematics_From_Pose(const Vector3 *position,
+                                                               const EulerAngles *orientation,
+                                                               const DHParameters *dh,
+                                                               int *flag_beyond_180,
+                                                               bool enable_q3_patch)
+{
+    InverseKinematicsSolutions solutions;
+    solutions.count = 0;
+
+    EndEffectorState desired_state = Create_End_Effector_State(position, orientation);
+    Matrix3x3 R06 = desired_state.rotation;
+
+    double ax = R06.m[0][2];
+    double ay = R06.m[1][2];
+    double az = R06.m[2][2];
+    double d2 = dh->d[1];
+    double d4 = dh->d[3];
+    double a2 = dh->a[2];
+    double a3 = dh->a[3];
+    double nx = R06.m[0][0];
+    double ny = R06.m[1][0];
+    double nz = R06.m[2][0];
+
+    double px = desired_state.position.x - dh->d[5] * ax;
+    double py = desired_state.position.y - dh->d[5] * ay;
+    double pz = desired_state.position.z - dh->d[5] * az;
+
+    double temp = px * px + py * py - d2 * d2;
+    if (temp < 0.0)
+        return solutions;
+
+    double theta1_1 = atan2(py, px) - atan2(d2, sqrt(temp));
+    double theta1_2 = atan2(py, px) - atan2(d2, -sqrt(temp));
+
+    double q1 = 0.0;
+    double q2 = 0.0;
+    double q3 = 0.0;
+    double q4 = 0.0;
+    double q5 = 0.0;
+    double q6 = 0.0;
+    double q23 = 0.0;
+
+    for (int i1 = 0; i1 < 2; i1++)
+    {
+        q1 = (i1 == 0) ? theta1_1 : theta1_2;
+
+        double k = (px * px + py * py + pz * pz - a2 * a2 - a3 * a3 - d2 * d2 - d4 * d4) /
+                   (2.0 * a2);
+
+        temp = a3 * a3 + d4 * d4 - k * k;
+        if (temp < 0.0)
+            continue;
+
+        for (int i3 = 0; i3 < 2; i3++)
+        {
+            if (i3 == 0)
+                q3 = atan2(a3, d4) - atan2(k, sqrt(temp));
+            else
+                q3 = atan2(a3, d4) - atan2(k, -sqrt(temp));
+
+            q23 = atan2(-(a3 + a2 * cos(q3)) * pz + (cos(q1) * px + sin(q1) * py) * (a2 * sin(q3) - d4),
+                        (a2 * sin(q3) - d4) * pz + (cos(q1) * px + sin(q1) * py) * (a2 * cos(q3) + a3));
+            q2 = q23 - q3;
+            if (q3 < 0.0)
+                q2 += M_PI / 2.0;
+            else if (q3 > 0.0)
+                q2 -= M_PI * 3.0 / 2.0;
+
+            q4 = atan2(-ax * sin(q1) + ay * cos(q1),
+                       -ax * cos(q1) * cos(q23) - ay * sin(q1) * cos(q23) + az * sin(q23));
+
+            double s5 = -(ax * (cos(q1) * cos(q23) * cos(q4) + sin(q1) * sin(q4)) +
+                          ay * (sin(q1) * cos(q23) * cos(q4) - cos(q1) * sin(q4)) -
+                          az * (sin(q23) * cos(q4)));
+
+            double c5 = ax * (-cos(q1) * sin(q23)) +
+                        ay * (-sin(q1) * sin(q23)) +
+                        az * (-cos(q23));
+
+            q5 = atan2(s5, c5);
+
+            double s6 = -nx * (cos(q1) * cos(q23) * sin(q4) - sin(q1) * cos(q4)) -
+                        ny * (sin(q1) * cos(q23) * sin(q4) + cos(q1) * cos(q4)) +
+                        nz * (sin(q23) * sin(q4));
+
+            double c6 = nx * ((cos(q1) * cos(q23) * cos(q4) + sin(q1) * sin(q4)) * cos(q5) -
+                              cos(q1) * sin(q23) * sin(q5)) +
+                        ny * ((sin(q1) * cos(q23) * cos(q4) - cos(q1) * sin(q4)) * cos(q5) -
+                              sin(q1) * sin(q23) * sin(q5)) -
+                        nz * (sin(q23) * cos(q4) * cos(q5) + cos(q23) * sin(q5));
+
+            q6 = atan2(s6, c6);
+
+            if (solutions.count < 8)
+            {
+                double q3_tmp = Normalize_Angle(q3);
+                if (enable_q3_patch && flag_beyond_180 != NULL)
+                {
+                    if (q3_tmp * 180.0 / M_PI > 160.0)
+                        *flag_beyond_180 = 1;
+                    else if (q3_tmp * 180.0 / M_PI < 160.0 && q3_tmp > 0.0)
+                        *flag_beyond_180 = 0;
+                    if (*flag_beyond_180 && q3_tmp * 180.0 / M_PI < 0.0)
+                        q3_tmp = 2.0 * M_PI + q3_tmp;
+                }
+
+                JointAngles *sol = &solutions.angles[solutions.count];
+                sol->theta[0] = Normalize_Angle(q1);
+                sol->theta[1] = Normalize_Angle(q2);
+                sol->theta[2] = q3_tmp;
+                sol->theta[3] = Normalize_Angle(q4);
+                sol->theta[4] = Normalize_Angle(q5);
+                sol->theta[5] = Normalize_Angle(q6);
+                solutions.count++;
+
+                if (solutions.count < 8)
+                {
+                    sol = &solutions.angles[solutions.count];
+                    sol->theta[0] = Normalize_Angle(q1);
+                    sol->theta[1] = Normalize_Angle(q2);
+                    sol->theta[2] = q3_tmp;
+                    sol->theta[3] = Normalize_Angle(q4 + M_PI);
+                    sol->theta[4] = Normalize_Angle(-q5);
+                    sol->theta[5] = Normalize_Angle(q6 + M_PI);
+                    solutions.count++;
+                }
+            }
+        }
+    }
+
+    return solutions;
+}
+
+static InverseKinematicsSolutions Inverse_Kinematics_From_Rotation_Matrix(const Vector3 *position,
+                                                                          const Matrix3x3 *rotation,
+                                                                          const DHParameters *dh,
+                                                                          int *flag_beyond_180,
+                                                                          bool enable_q3_patch)
+{
+    (void)Transform_From_Rotation_And_Position(rotation, position);
+    EulerAngles orientation = Rotation_Matrix_To_Euler(rotation);
+    return Inverse_Kinematics_From_Pose(position, &orientation, dh, flag_beyond_180, enable_q3_patch);
+}
+
+static void Fit_Angle_Solution(JointAngles *solution, const JointAngles *reference)
+{
+    for (int j = 3; j < 6; j++)
+    {
+        double delta = solution->theta[j] - reference->theta[j];
+        if (delta > M_PI)
+            solution->theta[j] -= 2.0 * M_PI;
+        else if (delta < -M_PI)
+            solution->theta[j] += 2.0 * M_PI;
+    }
+}
+
+float Kinematic_Clamp(float value, float min, float max)
+{
+    if (value < min)
+        return min;
+    if (value > max)
+        return max;
+    return value;
+}
+
+void Kinematic_Get_Default_Config(ArmConfig_t *config)
+{
+    if (config == NULL)
+        return;
+    memset(config, 0, sizeof(ArmConfig_t));
+}
+
+void Kinematic_Init(DOF6Kinematic_Handle_t *handle, const ArmConfig_t *config)
+{
+    if (handle == NULL || config == NULL)
+        return;
+
+    memset(handle, 0, sizeof(DOF6Kinematic_Handle_t));
+    memcpy(&handle->config, config, sizeof(ArmConfig_t));
+
+    for (uint8_t i = 0; i < 6; i++)
+    {
+        handle->current_ik_rad[i] = Deg_To_Rad(config->ik_reference_init_deg[i]);
+        handle->last_answer_rad[i] = handle->current_ik_rad[i];
+    }
+    handle->initialized = true;
+}
+
+static bool Controller_DeltaFK_Internal(const ControllerKinematicConfig_t *cfg, const float theta_rad[3], float xyz_m[3])
+{
+    float theta1 = theta_rad[0];
+    float theta2 = theta_rad[1];
+    float theta3 = theta_rad[2];
+    float sqrt3 = sqrtf(3.0f);
+
+    float R = cfg->delta_R_m;
+    float r = cfg->delta_r_m;
+    float L = cfg->delta_L_m;
+    float La = cfg->delta_La_m;
+
+    float A1 = R + L * cosf(theta1) - r;
+    float C1 = L * sinf(theta1);
+
+    float A2 = -0.5f * (R + L * cosf(theta2) - r);
+    float B2 = (sqrt3 / 2.0f) * (R + L * cosf(theta2) - r);
+    float C2 = L * sinf(theta2);
+
+    float A3 = -0.5f * (R + L * cosf(theta3) - r);
+    float B3 = -(sqrt3 / 2.0f) * (R + L * cosf(theta3) - r);
+    float C3 = L * sinf(theta3);
+
+    float D1 = 0.5f * (A2 * A2 - A1 * A1 + C2 * C2 - C1 * C1 + B2 * B2);
+    float A21 = A2 - A1;
+    float C21 = C2 - C1;
+    float D2 = 0.5f * (A3 * A3 - A1 * A1 + C3 * C3 - C1 * C1 + B3 * B3);
+    float A31 = A3 - A1;
+    float C31 = C3 - C1;
+
+    float denom1 = A21 * B3 - A31 * B2;
+    float denom2 = A31 * B2 - A21 * B3;
+    if (fabsf(denom1) < KINEMATIC_EPSILON || fabsf(denom2) < KINEMATIC_EPSILON)
+        return false;
+
+    float E1 = (B3 * C21 - B2 * C31) / denom1;
+    float F1 = (B3 * D1 - B2 * D2) / denom1;
+    float E2 = (A31 * C21 - A21 * C31) / denom2;
+    float F2 = (A31 * D1 - A21 * D2) / denom2;
+
+    float a = E1 * E1 + E2 * E2 + 1.0f;
+    float b = 2.0f * E2 * F2 + 2.0f * C1 - 2.0f * E1 * (A1 - F1);
+    float c = (A1 - F1) * (A1 - F1) + F2 * F2 + C1 * C1 - La * La;
+    float discriminant = b * b - 4.0f * a * c;
+    if (discriminant < 0.0f)
+        return false;
+
+    float z = (-b - sqrtf(discriminant)) / (2.0f * a);
+    xyz_m[0] = E1 * z + F1;
+    xyz_m[1] = E2 * z + F2;
+    xyz_m[2] = z;
+    return true;
+}
+
+static void Matrix_3_Cross_Product_3(float a[4][4], float b[4][4], float res[4][4])
+{
+    memset(res, 0, 4U * 4U * sizeof(float));
+    for (uint8_t i = 1; i <= 3; i++)
+    {
+        for (uint8_t j = 1; j <= 3; j++)
+        {
+            for (uint8_t k = 1; k <= 3; k++)
+                res[i][j] += a[i][k] * b[k][j];
+        }
+    }
+}
+
+static void Matrix_Reduce_3x1(float *a, float *b, float *res)
+{
+    res[1] = a[1] - b[1];
+    res[2] = a[2] - b[2];
+    res[3] = a[3] - b[3];
+}
+
+static void Matrix_T_3x3(float a[4][4], float res[4][4])
+{
+    for (uint8_t i = 1; i <= 3; i++)
+    {
+        for (uint8_t j = 1; j <= 3; j++)
+            res[i][j] = a[j][i];
+    }
+}
+
+static void Matrix_1x3_Cross_Product_3x1(float *a, float *b, float *res)
+{
+    *res = a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+}
+
+static bool Matrix_3x3_Det(float in[4][4], float *res)
+{
+    float a = in[1][1], b = in[1][2], c = in[1][3];
+    float d = in[2][1], e = in[2][2], f = in[2][3];
+    float g = in[3][1], h = in[3][2], i = in[3][3];
+
+    *res = a * (e * i - f * h) -
+           b * (d * i - f * g) +
+           c * (d * h - e * g);
+    return fabsf(*res) >= 0.001f;
+}
+
+static void Matrix_3x3_Inv(float in[4][4], float det, float inv[4][4])
+{
+    float a = in[1][1], b = in[1][2], c = in[1][3];
+    float d = in[2][1], e = in[2][2], f = in[2][3];
+    float g = in[3][1], h = in[3][2], i = in[3][3];
+
+    inv[1][1] = (e * i - f * h) / det;
+    inv[1][2] = -(b * i - c * h) / det;
+    inv[1][3] = (b * f - c * e) / det;
+    inv[2][1] = -(d * i - f * g) / det;
+    inv[2][2] = (a * i - c * g) / det;
+    inv[2][3] = -(a * f - c * d) / det;
+    inv[3][1] = (d * h - e * g) / det;
+    inv[3][2] = -(a * h - b * g) / det;
+    inv[3][3] = (a * e - b * d) / det;
+}
+
+static void Matrix_3x3_Take_Negative(float in[4][4], float out[4][4])
+{
+    for (uint8_t i = 1; i <= 3; i++)
+    {
+        for (uint8_t j = 1; j <= 3; j++)
+            out[i][j] = -in[i][j];
+    }
+}
+
+static void Matrix_3x3_Cross_Product_3x1(const float a[4][4], const float *b, float *res)
+{
+    res[0] = 0.0f;
+    for (uint8_t i = 1; i <= 3; i++)
+    {
+        res[i] = 0.0f;
+        for (uint8_t j = 1; j <= 3; j++)
+            res[i] += a[i][j] * b[j];
+    }
+}
+
+bool Kinematic_ControllerDeltaFK(const DOF6Kinematic_Handle_t *handle, const float theta_rad[3], float xyz_m[3])
+{
+    if (handle == NULL || theta_rad == NULL || xyz_m == NULL)
+        return false;
+    return Controller_DeltaFK_Internal(&handle->config.controller_config, theta_rad, xyz_m);
+}
+
+bool Kinematic_ControllerGravityCompensation(const DOF6Kinematic_Handle_t *handle,
+                                             const float theta_rad[3],
+                                             float torque[3],
+                                             float xyz_m[3])
+{
+    if (handle == NULL || theta_rad == NULL || torque == NULL || xyz_m == NULL)
+        return false;
+
+    const ControllerKinematicConfig_t *cfg = &handle->config.controller_config;
+    float target[3] = {0.0f};
+
+    if (!Controller_DeltaFK_Internal(cfg, theta_rad, target))
+        return false;
+
+    xyz_m[0] = target[0];
+    xyz_m[1] = target[1];
+    xyz_m[2] = target[2];
+
+    float target_1based[4] = {0.0f, target[0], target[1], target[2]};
+    float phi[4] = {0.0f, 0.0f, 2.0f * (float)M_PI / 3.0f, 4.0f * (float)M_PI / 3.0f};
+    float gravity[4] = {0.0f, -13.0f, 0.0f, 0.0f};
+    float Jacobi[4][4] = {0.0f};
+
+    float R1[4][4] = {
+        {0.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, cosf(phi[1]), -sinf(phi[1]), 0.0f},
+        {0.0f, sinf(phi[1]), cosf(phi[1]), 0.0f},
+        {0.0f, 0.0f, 0.0f, 1.0f}};
+    float R2[4][4] = {
+        {0.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, cosf(phi[2]), -sinf(phi[2]), 0.0f},
+        {0.0f, sinf(phi[2]), cosf(phi[2]), 0.0f},
+        {0.0f, 0.0f, 0.0f, 1.0f}};
+    float R3[4][4] = {
+        {0.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, cosf(phi[3]), -sinf(phi[3]), 0.0f},
+        {0.0f, sinf(phi[3]), cosf(phi[3]), 0.0f},
+        {0.0f, 0.0f, 0.0f, 1.0f}};
+
+    float temp1[4] = {0.0f, cfg->delta_L_m * cosf(theta_rad[0]) + cfg->delta_R_m - cfg->delta_r_m, 0.0f, -cfg->delta_L_m * sinf(theta_rad[0])};
+    float temp2[4] = {0.0f, cfg->delta_L_m * cosf(theta_rad[1]) + cfg->delta_R_m - cfg->delta_r_m, 0.0f, -cfg->delta_L_m * sinf(theta_rad[1])};
+    float temp3[4] = {0.0f, cfg->delta_L_m * cosf(theta_rad[2]) + cfg->delta_R_m - cfg->delta_r_m, 0.0f, -cfg->delta_L_m * sinf(theta_rad[2])};
+    float t1[4] = {0.0f};
+    float t2[4] = {0.0f};
+    float t3[4] = {0.0f};
+    float S1[4] = {0.0f};
+    float S2[4] = {0.0f};
+    float S3[4] = {0.0f};
+
+    Matrix_3x3_Cross_Product_3x1(R1, temp1, t1);
+    Matrix_3x3_Cross_Product_3x1(R2, temp2, t2);
+    Matrix_3x3_Cross_Product_3x1(R3, temp3, t3);
+    Matrix_Reduce_3x1(target_1based, t1, S1);
+    Matrix_Reduce_3x1(target_1based, t2, S2);
+    Matrix_Reduce_3x1(target_1based, t3, S3);
+
+    float b1_src[4] = {0.0f, -cfg->delta_L_m * sinf(theta_rad[0]), 0.0f, -cfg->delta_L_m * cosf(theta_rad[0])};
+    float b2_src[4] = {0.0f, -cfg->delta_L_m * sinf(theta_rad[1]), 0.0f, -cfg->delta_L_m * cosf(theta_rad[1])};
+    float b3_src[4] = {0.0f, -cfg->delta_L_m * sinf(theta_rad[2]), 0.0f, -cfg->delta_L_m * cosf(theta_rad[2])};
+    float b1[4] = {0.0f};
+    float b2[4] = {0.0f};
+    float b3[4] = {0.0f};
+    Matrix_3x3_Cross_Product_3x1(R1, b1_src, b1);
+    Matrix_3x3_Cross_Product_3x1(R2, b2_src, b2);
+    Matrix_3x3_Cross_Product_3x1(R3, b3_src, b3);
+
+    float S1b1 = 0.0f;
+    float S2b2 = 0.0f;
+    float S3b3 = 0.0f;
+    Matrix_1x3_Cross_Product_3x1(S1, b1, &S1b1);
+    Matrix_1x3_Cross_Product_3x1(S2, b2, &S2b2);
+    Matrix_1x3_Cross_Product_3x1(S3, b3, &S3b3);
+
+    float Sb[4][4] = {
+        {0.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, S1b1, 0.0f, 0.0f},
+        {0.0f, 0.0f, S2b2, 0.0f},
+        {0.0f, 0.0f, 0.0f, S3b3}};
+    float S_T[4][4] = {
+        {0.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, S1[1], S1[2], S1[3]},
+        {0.0f, S2[1], S2[2], S2[3]},
+        {0.0f, S3[1], S3[2], S3[3]},
+    };
+
+    float S_det = 0.0f;
+    float S_T_inv[4][4] = {0.0f};
+    if (Matrix_3x3_Det(S_T, &S_det))
+    {
+        float Jacobi_temp[4][4] = {0.0f};
+        Matrix_3x3_Inv(S_T, S_det, S_T_inv);
+        Matrix_3_Cross_Product_3(S_T_inv, Sb, Jacobi_temp);
+        Matrix_3x3_Take_Negative(Jacobi_temp, Jacobi);
+    }
+
+    float Jacobo_T[4][4] = {0.0f};
+    float torque_1based[4] = {0.0f};
+    Matrix_T_3x3(Jacobi, Jacobo_T);
+    Matrix_3x3_Cross_Product_3x1(Jacobo_T, gravity, torque_1based);
+
+    torque[0] = -torque_1based[1];
+    torque[1] = -torque_1based[2];
+    torque[2] = -torque_1based[3];
+    return true;
+}
+
+float Kinematic_Scale_Controller_Pitch(const DOF6Kinematic_Handle_t *handle, float pitch_deg)
+{
+    float limit = 60.0f;
+    if (handle != NULL && handle->config.controller_config.pitch_limit_deg > KINEMATIC_EPSILON)
+        limit = handle->config.controller_config.pitch_limit_deg;
+
+    pitch_deg = Kinematic_Clamp(pitch_deg, -limit, limit);
+    return pitch_deg / limit * 90.0f;
+}
+
+void Kinematic_Build_Rotation_ZYX(float yaw_deg, float pitch_deg, float roll_deg, float R[9])
+{
+    if (R == NULL)
+        return;
+
+    float yaw = yaw_deg * KINEMATIC_DEG_TO_RAD;
+    float pitch = pitch_deg * KINEMATIC_DEG_TO_RAD;
+    float roll = roll_deg * KINEMATIC_DEG_TO_RAD;
+
+    float cy = cosf(yaw);
+    float sy = sinf(yaw);
+    float cp = cosf(pitch);
+    float sp = sinf(pitch);
+    float cr = cosf(roll);
+    float sr = sinf(roll);
+
+    R[0] = cy * cp;
+    R[1] = cy * sp * sr - sy * cr;
+    R[2] = cy * sp * cr + sy * sr;
+    R[3] = sy * cp;
+    R[4] = sy * sp * sr + cy * cr;
+    R[5] = sy * sp * cr - cy * sr;
+    R[6] = -sp;
+    R[7] = cp * sr;
+    R[8] = cp * cr;
+}
+
+void Kinematic_Build_Pose(float x_mm,
+                          float y_mm,
+                          float z_mm,
+                          float roll_deg,
+                          float pitch_deg,
+                          float yaw_deg,
+                          Pose6D_t *pose)
+{
+    if (pose == NULL)
+        return;
+
+    pose->X = x_mm;
+    pose->Y = y_mm;
+    pose->Z = z_mm;
+    pose->A = roll_deg;
+    pose->B = pitch_deg;
+    pose->C = yaw_deg;
+    pose->hasR = true;
+    Kinematic_Build_Rotation_ZYX(yaw_deg, pitch_deg, roll_deg, pose->R);
+}
+
+static void Map_DeltaXYZ_To_Pose(const ControllerKinematicConfig_t *cfg, const float xyz_m[3], float pose_xyz_m[3])
+{
+    float x = -(xyz_m[2] - cfg->xyz_delta_error_m[2]);
+    float y = xyz_m[1] - cfg->xyz_delta_error_m[1];
+    float z = xyz_m[0] - cfg->xyz_delta_error_m[0];
+
+    x += cfg->xyz_arm_error_m[0];
+    y += cfg->xyz_arm_error_m[1];
+    z += cfg->xyz_arm_error_m[2];
+
+    x *= cfg->xyz_scale[0];
+    y *= cfg->xyz_scale[1];
+    z *= cfg->xyz_scale[2];
+    y *= -1.0f;
+
+    pose_xyz_m[0] = x;
+    pose_xyz_m[1] = y;
+    pose_xyz_m[2] = z;
+}
+
+bool Kinematic_ControllerFK(const DOF6Kinematic_Handle_t *handle,
+                            const ControllerInput_t *input,
+                            Pose6D_t *pose,
+                            float torque[3],
+                            float xyz_m[3])
+{
+    if (handle == NULL || input == NULL || pose == NULL || !handle->initialized)
+        return false;
+
+    const ControllerKinematicConfig_t *cfg = &handle->config.controller_config;
+    float theta_rad[3] = {
+        -input->q1_rad - cfg->q1_offset_deg * KINEMATIC_DEG_TO_RAD,
+        input->q2_rad - cfg->q2_initial_deg * KINEMATIC_DEG_TO_RAD - cfg->q2_offset_deg * KINEMATIC_DEG_TO_RAD,
+        -input->q3_rad + cfg->q3_initial_deg * KINEMATIC_DEG_TO_RAD - cfg->q3_offset_deg * KINEMATIC_DEG_TO_RAD,
+    };
+    float local_torque[3] = {0.0f};
+    float local_xyz_m[3] = {0.0f};
+
+    if (!Kinematic_ControllerGravityCompensation(handle, theta_rad, local_torque, local_xyz_m))
+        return false;
+
+    if (theta_rad[0] > cfg->q1_max_rad - cfg->q1_offset_deg * KINEMATIC_DEG_TO_RAD)
+        local_torque[0] = cfg->q1_limit_torque;
+    if (theta_rad[1] > (cfg->q2_max_deg - cfg->q2_initial_deg - cfg->q2_offset_deg) * KINEMATIC_DEG_TO_RAD)
+        local_torque[1] *= 0.3f;
+    if (theta_rad[2] > (-(cfg->q3_max_deg - cfg->q3_initial_deg) - cfg->q3_offset_deg) * KINEMATIC_DEG_TO_RAD)
+        local_torque[2] *= 0.3f;
+
+    float pose_xyz_m[3] = {0.0f};
+    Map_DeltaXYZ_To_Pose(cfg, local_xyz_m, pose_xyz_m);
+
+    float roll = input->imu_roll_deg + 180.0f;
+    float pitch = -Kinematic_Scale_Controller_Pitch(handle, input->imu_pitch_deg) + 90.0f;
+    float yaw = input->imu_yaw_deg;
+    Kinematic_Build_Pose(pose_xyz_m[0] * CONTROLLER_POSE_SCALE_MM,
+                         pose_xyz_m[1] * CONTROLLER_POSE_SCALE_MM,
+                         pose_xyz_m[2] * CONTROLLER_POSE_SCALE_MM,
+                         roll,
+                         pitch,
+                         yaw,
+                         pose);
+
+    if (torque != NULL)
+    {
+        torque[0] = local_torque[0];
+        torque[1] = local_torque[1];
+        torque[2] = local_torque[2];
+    }
+    if (xyz_m != NULL)
+    {
+        xyz_m[0] = local_xyz_m[0];
+        xyz_m[1] = local_xyz_m[1];
+        xyz_m[2] = local_xyz_m[2];
+    }
 
     return true;
 }
 
+bool Kinematic_SolveFK(const DOF6Kinematic_Handle_t *handle,
+                       const Joint6D_t *inputJoints,
+                       Pose6D_t *outputPose)
+{
+    if (handle == NULL || inputJoints == NULL || outputPose == NULL || !handle->initialized)
+        return false;
 
+    DHParameters dh;
+    JointAngles joint;
+    Config_To_DH(&handle->config, &dh);
+    for (uint8_t i = 0; i < 6; i++)
+        joint.theta[i] = Deg_To_Rad(inputJoints->a[i]);
 
-// --- IK 核心算法 ---
+    EndEffectorState state = Forward_Kinematics(&joint, &dh);
+    EulerAngles euler = Rotation_Matrix_To_Euler(&state.rotation);
 
-/**
- * @brief 逆运动学解算 (Pose -> Joints)
- *        使用几何法 (Geometric Approach) + 腕部解耦 (Pieper's Solution)
- *        针对 6-DOF 且满足以下条件的机械臂：
- *        1. 后三轴 (J4, J5, J6) 轴线交于一点 (Wrist Center)
- *        2. J2, J3 平行
- *        3. J1 垂直于 J2
- */
+    outputPose->X = (float)(state.position.x * handle->config.dh_to_pose_scale);
+    outputPose->Y = (float)(state.position.y * handle->config.dh_to_pose_scale);
+    outputPose->Z = (float)(state.position.z * handle->config.dh_to_pose_scale);
+    outputPose->A = (float)Rad_To_Deg(euler.roll);
+    outputPose->B = (float)Rad_To_Deg(euler.pitch);
+    outputPose->C = (float)Rad_To_Deg(euler.yaw);
+    outputPose->hasR = true;
+    for (uint8_t r = 0; r < 3; r++)
+    {
+        for (uint8_t c = 0; c < 3; c++)
+            outputPose->R[r * 3 + c] = (float)state.rotation.m[r][c];
+    }
+    return true;
+}
+
+static void Pose_To_Vector_Rotation(const DOF6Kinematic_Handle_t *handle, const Pose6D_t *pose, Vector3 *position, Matrix3x3 *rotation)
+{
+    position->x = pose->X * handle->config.pose_to_dh_scale;
+    position->y = pose->Y * handle->config.pose_to_dh_scale;
+    position->z = pose->Z * handle->config.pose_to_dh_scale;
+
+    if (pose->hasR)
+    {
+        for (uint8_t r = 0; r < 3; r++)
+        {
+            for (uint8_t c = 0; c < 3; c++)
+                rotation->m[r][c] = pose->R[r * 3 + c];
+        }
+    }
+    else
+    {
+        *rotation = Euler_To_Rotation_Matrix(Deg_To_Rad(pose->A), Deg_To_Rad(pose->B), Deg_To_Rad(pose->C));
+    }
+}
+
 bool Kinematic_SolveIK(const DOF6Kinematic_Handle_t *handle,
                        const Pose6D_t *inputPose,
                        const Joint6D_t *lastJoints,
                        IKSolves_t *outputSolves)
 {
-    // 0. 几何常数提取 (减少重复访问指针)
-    float l1 = handle->config.D_BASE;      // J1 水平偏移
-    float l2 = handle->config.L_ARM;       // 大臂长
-    // l3, d4 未使用，因为我们直接用 l_ew (预计算好的有效长度)
-    // float l3 = handle->config.L_FOREARM;   
-    // float d4 = handle->config.D_ELBOW;     
-    float l4 = handle->config.L_WRIST;     // 手腕长 (J6 法兰距离)
-    
-    // 腕部等效长度 (Elbow to Wrist 连线长度)
-    // l_ew = sqrt(l3^2 + d4^2)
-    float l_ew = handle->l_ew;
-    // 肘部固有偏移角 atan(d4/l3)
-    float atan_e = handle->atan_e; 
+    (void)lastJoints;
 
-    // 1. 准备目标位姿矩阵 (T06)
-    float R06[9]; // 旋转矩阵
-    float P[3];   // 目标位置
+    if (handle == NULL || inputPose == NULL || outputSolves == NULL || !handle->initialized)
+        return false;
 
-    P[0] = inputPose->X;
-    P[1] = inputPose->Y;
-    P[2] = inputPose->Z;
+    memset(outputSolves, 0, sizeof(IKSolves_t));
 
-    if (inputPose->hasR) 
+    DHParameters dh;
+    Vector3 position;
+    Matrix3x3 rotation;
+    int flag = handle->flag_beyond_180;
+    Config_To_DH(&handle->config, &dh);
+    Pose_To_Vector_Rotation(handle, inputPose, &position, &rotation);
+
+    InverseKinematicsSolutions solves = Inverse_Kinematics_From_Rotation_Matrix(&position,
+                                                                                &rotation,
+                                                                                &dh,
+                                                                                &flag,
+                                                                                handle->config.enable_q3_beyond_180_patch);
+    if (solves.count <= 0)
+        return false;
+
+    for (int i = 0; i < solves.count && i < IK_SOLVE_COUNT; i++)
     {
-        memcpy(R06, inputPose->R, 9 * sizeof(float));
-    } 
-    else 
-    {
-        // 默认根据欧拉角(Z-Y-X)构建旋转矩阵
-        float pitch = inputPose->B * DEG_TO_RAD_CONST;
-        float roll  = inputPose->C * DEG_TO_RAD_CONST;
-        float yaw   = inputPose->A * DEG_TO_RAD_CONST;
-        
-        float sp = sinf(pitch);
-        float cp = cosf(pitch);
-        float sr = sinf(roll);
-        float cr = cosf(roll);
-        float sy = sinf(yaw);
-        float cy = cosf(yaw);
-
-        R06[0] = cy * cp;
-        R06[1] = cy * sp * sr - sy * cr;
-        R06[2] = cy * sp * cr + sy * sr;
-
-        R06[3] = sy * cp;
-        R06[4] = sy * sp * sr + cy * cr;
-        R06[5] = sy * sp * cr - cy * sr;
-
-        R06[6] = -sp;
-        R06[7] = cp * sr;
-        R06[8] = cp * cr;
+        for (uint8_t j = 0; j < 6; j++)
+            outputSolves->config[i].a[j] = (float)Rad_To_Deg(solves.angles[i].theta[j]);
+        outputSolves->solFlag[i][0] = 1;
     }
-
-    // 2. 计算腕部中心点 (Wrist Center, P_w)
-    // P_w = P_end - l4 * (R06 * [0,0,1]^T)
-    // 也就是 P_w = P_end - l4 * Z_axis_of_R06
-    float P_w[3];
-    P_w[0] = P[0] - l4 * R06[2]; // R06 第三列即为 Z 轴向量
-    P_w[1] = P[1] - l4 * R06[5];
-    P_w[2] = P[2] - l4 * R06[8];
-
-    // 初始化解的有效性标记
-    memset(outputSolves->solFlag, 0, sizeof(outputSolves->solFlag));
-
-    // ==========================================================
-    // 求解关节 1 (theta1) - 两个解 (Front / Back)
-    // ==========================================================
-    // 投影到 XY 平面
-    // P_w_x = c1 * x + s1 * y (在 J1 坐标系下的长度)
-    // 需要满足: P_w_x^2 + P_w_y^2 >= d_base^2 (如果有 d_base 偏移)
-    // 但通常 J1 轴线穿过原点，l1 是 J2 相对 J1 的水平偏移？
-    // 根据你的 DH 表：
-    // J1: alpha = -90, a = D_BASE. 意味着 J2 轴线偏离 J1 轴线 D_BASE 距离
-    // 这种情况 J1 的解法是：
-    // rho^2 = Pwx^2 + Pwy^2
-    // 如果 rho < D_BASE，无解。
-    // theta1 = atan2(Py, Px) - atan2(D_BASE, +/- sqrt(rho^2 - D_BASE^2))
-    
-    // 如果 D_BASE 是沿 X 轴的偏移 (a 参数)，则：
-    float rho2 = P_w[0]*P_w[0] + P_w[1]*P_w[1];
-    float rho  = sqrtf(rho2);
-    
-    // 如果 D_BASE 定义为 DH 的 d 参数(沿z轴)，则不需要 acos/asin 修正，直接 atan2
-    // 查看你的 Init DH： J1: d=L_Base, a=D_Base.
-    
-    // 3. 求解 J1
-    float theta1_1 = 0.0f;
-    float theta1_2 = 0.0f;
-    float phi_offset = 0.0f;
-    
-    // [检查奇异性] : 腕点在 Z 轴附近
-    if (rho < 0.0001f)
-    {
-        // 奇异，保持上一时刻角度
-        // 这种情况下任意角度都行，取上一时刻最稳
-        float current_j1 = lastJoints->a[0] * DEG_TO_RAD_CONST;
-        outputSolves->config[0].a[0] = current_j1;
-        outputSolves->config[4].a[0] = current_j1;
-        // 标记为潜在问题，但继续计算
-        theta1_1 = current_j1;
-        theta1_2 = current_j1;
-    } 
-    else 
-    {
-        // [几何解法] 
-        float alpha = atan2f(P_w[1], P_w[0]);
-        // D_BASE 的影响已经通过几何中心定义处理，这里主要处理 D_ELBOW (J3侧向偏移) 的影响
-        float d_elbow_offset = handle->config.D_ELBOW;
-
-        if (rho > fabsf(d_elbow_offset))
-        {
-            // 计算由 D_ELBOW 引起的角度偏差
-            // asin(offset / horizontal_dist)
-            phi_offset = asinf(d_elbow_offset / rho);
-            
-            // 两个可能的解：正向伸手 和 反向伸手
-            // 减去 phi_offset 是为了补偿侧向偏移
-            // 此时的手臂平面投影长度不再是 rho，而是 sqrt(rho^2 - e^2)
-            // 这一点会在后面计算 J2/J3 时用到 (rx)
-        }
-        else
-        {
-            // 目标点在“圆柱盲区”内，无法到达
-            // 这种情况下只能尽力而为，保持 alpha
-            phi_offset = 0.0f;
-        }
-
-        theta1_1 = alpha - phi_offset;
-        theta1_2 = alpha + (float)M_PI + phi_offset; // 背面解
-
-        // 将角度标准化到 -PI ~ PI
-        while (theta1_1 > (float)M_PI) theta1_1 -= 2.0f * (float)M_PI;
-        while (theta1_1 < -(float)M_PI) theta1_1 += 2.0f * (float)M_PI;
-        
-        while (theta1_2 > (float)M_PI) theta1_2 -= 2.0f * (float)M_PI;
-        while (theta1_2 < -(float)M_PI) theta1_2 += 2.0f * (float)M_PI;
-        
-        // 填入两组大类 (0-3 为 J1解1, 4-7 为 J1解2)
-        for(int i=0; i<4; i++) outputSolves->config[i].a[0] = theta1_1;
-        for(int i=4; i<8; i++) outputSolves->config[i].a[0] = theta1_2;
-    }
-    
-    // 针对 Theta1 的两种情况遍历
-    for (int ind_arm = 0; ind_arm < 2; ind_arm++)
-    {
-        // [新增] 显式计算当前循环使用的 theta1 及其三角函数
-        // 用于精确计算 J2 坐标系下的投影
-        float th1_curr = outputSolves->config[ind_arm * 4].a[0];
-        
-        // ==========================================================
-        // 求解关节 2, 3 (theta2, theta3) - 平面几何
-        // ==========================================================
-        // 此时我们将 3D 问题转化为了 2D 平面问题
-        
-        // [关键修正]
-        // 当存在 D_ELBOW 时，末端并不在 J1 的径向平面上，而是有一个偏移。
-        
-        // 如果 d_elbow_offset 为 0，sqrtf(rho2) = rho
-        // 注意这里的 d_elbow_offset 是 handle->config.D_ELBOW，需要在 loop 外获取或者直接使用 handle->
-        float d_elbow = handle->config.D_ELBOW;
-        float rx_1 = sqrtf(fmaxf(0.0f, rho2 - d_elbow * d_elbow)); 
-        // 还需要减去 J1 的水平偏移 L1 (即 A1/D_BASE，视 DH 定义而定)
-        rx_1 -= handle->config.D_BASE;
-
-        // rz 是 Z 方向的高度差
-        // J2 的原点高度是 L_BASE
-        float rz_1 = P_w[2] - handle->config.L_BASE;
-
-        float rx_2 = -sqrtf(fmaxf(0.0f, rho2 - d_elbow * d_elbow)) - handle->config.D_BASE;
-        float rz_2 = rz_1;
-
-        float rx, rz;
-        if (ind_arm == 0) {
-            rx = rx_1; 
-            rz = rz_1;
-        } else {
-            rx = rx_2; 
-            rz = rz_2; 
-        }
-
-        // 重算 c2 (Target distance squared)
-        float dist_sq = rx*rx + rz*rz;
-        float dist = sqrtf(dist_sq);
-
-        float a1 = l2;   // 大臂
-        float a2 = l_ew; // 小臂等效长度
-        
-        // 计算 J3 关节位置的几何两解 (Elbow Up / Elbow Down)
-        // 利用余弦定理
-        float cos_phi = (l2*l2 + l_ew*l_ew - dist_sq) / (2.0f * l2 * l_ew); 
-        
-        // [优化] 增加浮点数容差处理
-        if (cos_phi > 1.0f) cos_phi = 1.0f;
-        if (cos_phi < -1.0f) cos_phi = -1.0f;
-        
-        float phi = acosf(cos_phi); // 三角形内角 (0 ~ PI)
-        
-        // J3 的两个解: Elbow Up / Elbow Down
-        // 根据 DH 定义修正: 
-        // 你的 init DH 中 J3 的 offset 是 90 度?
-        // 我们先算几何角，最后转 DH
-        
-        // Elbow Up
-        float theta3_1 = (float)M_PI - phi - atan_e; 
-        // Elbow Down
-        float theta3_2 = -(float)M_PI + phi - atan_e;
-
-        // 求解 theta2
-        // theta2 = atan2(rz, rx) - (三角形底角 gamma)
-        // cos_gamma = (l2^2 + s^2 - l_ew * l_ew) / (2 * l2 * s)
-        float cos_gamma = (l2*l2 + dist_sq - l_ew*l_ew) / (2.0f * l2 * dist); 
-        
-        if (cos_gamma > 1.0f) cos_gamma = 1.0f;
-        if (cos_gamma < -1.0f) cos_gamma = -1.0f;
-
-        float gamma = acosf(cos_gamma);
-        float beta = atan2f(rz, rx);
-        
-        float theta2_1 = beta - gamma; // 对应 theta3_1 (Elbow Up)
-        float theta2_2 = beta + gamma; // 对应 theta3_2 (Elbow Down)
-        
-        // ==========================================================
-        // [调试诊断] 
-        // 这一步非常关键。上面的 theta2_1, theta3_1 是纯几何角度（水平为0，拉直为0）
-        // 下面要根据 DH 表里的 Offset 转换成电机角度。
-        // 如果这里出错，会导致解完全对不上。
-        // ==========================================================
-        
-        float off2 = handle->DH_matrix[1][0];
-        float off3 = handle->DH_matrix[2][0];
-        
-        // 临时变量保存几何解，用于 Debug (不做 Offset 修正)
-        float th2_geom_1 = theta2_1;
-        float th3_geom_1 = theta3_1;
-
-        // Joint = Geom - Offset
-        theta2_1 -= off2;
-        theta2_2 -= off2;
-        theta3_1 -= off3;
-        theta3_2 -= off3;
-        
-        // 填入解
-        // Group 1: J1_1/2, J2_1, J3_1 (Up)
-        // Group 2: J1_1/2, J2_2, J3_2 (Down)
-        
-        // 存入 solve struct
-        int base_idx = ind_arm * 4;
-        
-        // Elbow Up
-        outputSolves->config[base_idx + 0].a[1] = theta2_1;
-        outputSolves->config[base_idx + 0].a[2] = theta3_1;
-        
-        // [Hack for Debug] 把纯几何解存入第 4/5 个轴的位置，方便在 Watch 窗口查看
-        // 如果您看到 a[3] 和 a[4] 的值接近 75 和 90 (弧度制)，说明几何算对了，是 Offset 问题。
-        outputSolves->config[base_idx + 0].a[3] = th2_geom_1;
-        outputSolves->config[base_idx + 0].a[4] = th3_geom_1;
-        
-        outputSolves->config[base_idx + 1].a[1] = theta2_1;
-        outputSolves->config[base_idx + 1].a[2] = theta3_1;
-        
-        // Elbow Down
-        outputSolves->config[base_idx + 2].a[1] = theta2_2;
-        outputSolves->config[base_idx + 2].a[2] = theta3_2;
-        outputSolves->config[base_idx + 3].a[1] = theta2_2;
-        outputSolves->config[base_idx + 3].a[2] = theta3_2;
-        
-        // ==========================================================
-        // 求解关节 4, 5, 6 (Spherical Wrist)
-        // ==========================================================
-        // R_wrist = (R0_1 * R1_2 * R2_3)^T * R0_6
-        // R0_3 = R0_1 * R1_2 * R2_3
-        
-        for (int i_elbow = 0; i_elbow < 2; i_elbow++) 
-        {
-            int current_idx_base = base_idx + i_elbow * 2;
-            int idx1 = current_idx_base;     // Flip
-            int idx2 = current_idx_base + 1; // No Flip
-            
-            float th1_real = outputSolves->config[idx1].a[0];
-            float th2_real = outputSolves->config[idx1].a[1];
-            float th3_real = outputSolves->config[idx1].a[2];
-            
-            // 计算 R0_3
-            // 这里为了准确，必须代入 DH 参数算旋转矩阵
-            // T01 * T12 * T23 的旋转部分
-            // 简化计算：R03 = RotZ(t1)*RotX(a1)*RotZ(t2)*RotX(a2)*RotZ(t3)
-            // 根据你的 DH 表:
-            // J1: alpha=-90
-            // J2: alpha=0
-            // J3: alpha=90
-            
-            // 下面构造旋转矩阵需要严格按照 Init 里的 DH 表
-            // 建议：直接算出来 R03
-            
-            // 1. Calculate R03 matrices
-            // [关键] 正向运动学推导中，R矩阵构建必须包含 Offset
-            // R = RotZ(theta + offset) * ...
-            // 因为 R01, R12, R23 是用的真实 theta (算法解 + Offset) 吗？
-            // 不，这里的 th1_real, th2_real 是 outputSolves 里的值 (即 Joint Angle)
-            // 而 DH 变换中的角度应该是 (Joint Angle + Offset)
-            // 所以下面的 sinf/cosf 参数里必须加上 handle->DH_matrix[i][0]
-            
-            float c1_real = cosf(th1_real + handle->DH_matrix[0][0]); 
-            float s1_real = sinf(th1_real + handle->DH_matrix[0][0]);
-            float c2_real = cosf(th2_real + handle->DH_matrix[1][0]); 
-            float s2_real = sinf(th2_real + handle->DH_matrix[1][0]); 
-            float c3_real = cosf(th3_real + handle->DH_matrix[2][0]);
-            float s3_real = sinf(th3_real + handle->DH_matrix[2][0]);
-            
-            // DH alpha: -90, 0, 90
-            // T1(R) = [c1 -s1*0  s1*-1] = [c1  0 -s1]
-            //         [s1  c1*0 -c1*-1]   [s1  0  c1]
-            //         [0   -1    0    ]   [0  -1   0]
-            
-            float R01[9] = {c1_real, 0, -s1_real,  s1_real, 0, c1_real,  0, -1, 0}; // alpha1 = -90
-            float R12[9] = {c2_real, -s2_real, 0,  s2_real, c2_real, 0,  0, 0, 1};  // alpha2 = 0
-            float R23[9] = {c3_real, 0, s3_real,   s3_real, 0, -c3_real, 0, 1, 0};  // alpha3 = 90
-
-            float R02[9], R03[9];
-            MatMultiply(R01, R12, R02, 3, 3, 3);
-            MatMultiply(R02, R23, R03, 3, 3, 3);
-            
-            // R36 = R03^T * R06
-            float R03_T[9];
-            // Transpose
-            R03_T[0]=R03[0]; R03_T[1]=R03[3]; R03_T[2]=R03[6];
-            R03_T[3]=R03[1]; R03_T[4]=R03[4]; R03_T[5]=R03[7];
-            R03_T[6]=R03[2]; R03_T[7]=R03[5]; R03_T[8]=R03[8];
-            
-            float R36[9];
-            MatMultiply(R03_T, R06, R36, 3, 3, 3);
-            
-            // 从 R36 中提取 Euler ZYZ (或者 ZYX? 看后三轴构造)
-            // 你的 DH 后三轴:
-            // J4: alpha = -90 (Rot X -90)
-            // J5: alpha = 90  (Rot X 90)
-            // J6: alpha = 0
-            // 标准 Spherical Wrist 通常是 Z-Y-Z 类型的欧拉角解
-            
-            // R36 = RotZ(t4) * RotX(-90) * RotZ(t5) * RotX(90) * RotZ(t6)
-            //     = [ c4c5c6-s4s6, -c4c5s6-s4c6, c4s5]
-            //       [ s4c5c6+c4s6, -s4c5s6+c4c6, s4s5]
-            //       [ -s5c6,       s5s6,         c5  ]
-            // 观察 R33 (第九个元素) = c5
-            
-            float theta5 = acosf(R36[8]); // 0 ~ PI
-            
-            // 解 1: theta5 > 0 (No Flip) -> idx2
-            // 解 2: theta5 < 0 (Flip)    -> idx1
-            
-            // Case 1: Positive sin(t5)
-            outputSolves->config[idx2].a[4] = theta5;
-            if (fabsf(sinf(theta5)) > 0.001f) 
-            {
-                outputSolves->config[idx2].a[3] = atan2f(R36[5], R36[2]); // atan2(s4s5, c4s5) = atan2(R23, R13)
-                outputSolves->config[idx2].a[5] = atan2f(R36[7], -R36[6]); // atan2(s5s6, -s5c6)
-            } 
-            else 
-            {
-                // Singularity (J5 = 0), J4 and J6 align
-                // [优化] 更加稳健的奇异点处理
-                float t4_fixed = lastJoints->a[3] * DEG_TO_RAD_CONST;
-                // 当 t5=0, R36[0] = c(t4+t6), R36[1] = -s(t4+t6) (假设是 RzRyRz)
-                // 需根据实际旋转矩阵构造推导。
-                // 假设标准球腕: R = Rz(4)*Ry(5)*Rz(6)
-                // t5=0 => R = Rz(t4+t6) = [ c(4+6) -s(4+6) 0 ]
-                //                         [ s(4+6)  c(4+6) 0 ]
-                //                         [ 0       0      1 ]
-                // atan2(R[1][0], R[0][0]) = t4+t6 
-                // 注意 R36 是行主序平铺: 
-                // index: 0 1 2
-                //        3 4 5
-                //        6 7 8
-                // R36[3] = s(4+6), R36[0] = c(4+6)
-                float sum_angle = atan2f(R36[3], R36[0]); 
-                outputSolves->config[idx2].a[3] = t4_fixed;
-                outputSolves->config[idx2].a[5] = sum_angle - t4_fixed;
-                // 标记为奇异解
-                outputSolves->solFlag[idx2][0] = 2; 
-            }
-            
-            // Case 2: Negative sin(t5) -> theta5' = -theta5
-            outputSolves->config[idx1].a[4] = -theta5;
-             if (fabsf(sinf(theta5)) > 0.001f)
-            {
-                outputSolves->config[idx1].a[3] = atan2f(-R36[5], -R36[2]);
-                outputSolves->config[idx1].a[5] = atan2f(-R36[7], R36[6]);
-            } 
-            else 
-            {
-                 // Singularity same handling
-                float t4_fixed = lastJoints->a[3] * DEG_TO_RAD_CONST;
-                float sum_angle = atan2f(R36[3], R36[0]); 
-                outputSolves->config[idx1].a[3] = t4_fixed;
-                outputSolves->config[idx1].a[5] = sum_angle - t4_fixed;
-                outputSolves->solFlag[idx1][0] = 2;
-            }
-            
-            // DH Offsets Correction for J4, J5, J6?
-            // 你的 DH J4, J5, J6 都是 0 offset 吗？
-            // 如果是，直接用。
-        
-        } // end loop wrist
-    } // end loop j1
-
-    // 4. 统一单位转换 (Rad -> Deg) 和范围归约
-    for (int k = 0; k < 8; k++) 
-    {
-        // 如果前面标记过 solFlag = -1 (无解)，可以做进一步处理
-        
-        for (int j = 0; j < 6; j++) 
-        {
-            float ang = outputSolves->config[k].a[j];
-            
-            // [优化] 使用 fmod 替代 while 循环 进行归一化
-            // 映射到 [-PI, PI]
-            ang = fmodf(ang + (float)M_PI, 2.0f * (float)M_PI); 
-            if (ang < 0) ang += 2.0f * (float)M_PI;
-                ang -= (float)M_PI;
-             
-             // Convert to Degrees
-            outputSolves->config[k].a[j] = ang * RAD_TO_DEG_CONST;
-        }
-        // 简单标记所有计算出的解有效 (你可以根据关节限位进一步筛选)
-        // 如果之前没有被标记为奇异(2) 或 无效(-1)，则标记为正常(1)
-        if (outputSolves->solFlag[k][0] == 0)
-            outputSolves->solFlag[k][0] = 1;
-    }
-
     return true;
 }
 
-
-
-
-
-
-
-
-
-
-/**
- * @brief 获取所有电机角度并填入 Joint_Angle_State_t 结构体
- * @param[out] joint_angle 输出的目标结构体指针
- */
-void Joint_Motor_Get_All_Angles_And_State(Joint_Angle_State_t *joint_angle)
+static void Joint6D_To_JointAngles(const Joint6D_t *joint_deg, JointAngles *joint_rad)
 {
-    // 安全检查
-    if (joint_angle == NULL) return;
+    for (uint8_t i = 0; i < 6; i++)
+        joint_rad->theta[i] = Deg_To_Rad(joint_deg->a[i]);
+}
 
-    // 遍历 Axis 1~6 (电机ID通常是1-6)
-    // 注意: Joint_Angle_State_t 数组均从 0 开始 (angle[0]对应轴1)
-    for(uint8_t i=0; i<6; i++) 
+static void IKSolves_To_Internal(const IKSolves_t *solves, InverseKinematicsSolutions *internal)
+{
+    internal->count = 0;
+    for (uint8_t i = 0; i < IK_SOLVE_COUNT; i++)
     {
-        float angle = Joint_Motor_Get_Angle(i+1);
-        uint8_t state = Joint_Motor_Get_State(i+1);
-        joint_angle->angle[i] = angle;
-        joint_angle->state[i] = state;
+        if (solves->solFlag[i][0] <= 0)
+            continue;
+        for (uint8_t j = 0; j < 6; j++)
+            internal->angles[internal->count].theta[j] = Deg_To_Rad(solves->config[i].a[j]);
+        internal->count++;
     }
+}
+
+int Kinematic_Select_Best_Sol(const DOF6Kinematic_Handle_t *handle,
+                              const IKSolves_t *solves,
+                              const Joint6D_t *current_joints)
+{
+    if (handle == NULL || solves == NULL || current_joints == NULL)
+        return -1;
+
+    InverseKinematicsSolutions internal;
+    JointAngles reference;
+    IKSolves_To_Internal(solves, &internal);
+    Joint6D_To_JointAngles(current_joints, &reference);
+
+    if (internal.count == 0)
+        return -1;
+
+    double min_cost = DBL_MAX;
+    int best_index = -1;
+    double max_jump = handle->config.max_single_joint_jump_rad > 0.0f ? handle->config.max_single_joint_jump_rad : 6.0;
+    double max_total_cost = handle->config.max_total_cost > 0.0f ? handle->config.max_total_cost : 20.0;
+
+    for (int i = 0; i < internal.count; i++)
+    {
+        double cost = 0.0;
+        for (int j = 0; j < 6; j++)
+        {
+            double diff = internal.angles[i].theta[j] - reference.theta[j];
+            if (internal.angles[i].theta[j] > Deg_To_Rad(300.0))
+            {
+                cost = DBL_MAX;
+                break;
+            }
+            if (diff > M_PI)
+                diff -= 2.0 * M_PI;
+            if (diff < -M_PI)
+                diff += 2.0 * M_PI;
+
+            double weight = handle->config.select_weight[j] > 0.0f ? handle->config.select_weight[j] : (7.0 - j);
+            cost += weight * fabs(diff);
+            if (diff >= max_jump || diff <= -max_jump)
+                cost = DBL_MAX;
+        }
+
+        if (cost < min_cost)
+        {
+            min_cost = cost;
+            best_index = i;
+        }
+    }
+
+    if (min_cost > max_total_cost)
+        return 255;
+    return best_index;
+}
+
+static void Apply_Affine_Map(const AffineAngleMap_t *map, const Joint6D_t *input, Joint6D_t *output)
+{
+    for (uint8_t i = 0; i < 6; i++)
+    {
+        float value = map->bias_deg[i];
+        for (uint8_t j = 0; j < 6; j++)
+            value += map->map[i][j] * input->a[j];
+        output->a[i] = value;
+    }
+}
+
+void Kinematic_IKAngle_To_Motor(const DOF6Kinematic_Handle_t *handle,
+                                const Joint6D_t *ik_joint_deg,
+                                Joint6D_t *motor_joint_deg)
+{
+    if (handle == NULL || ik_joint_deg == NULL || motor_joint_deg == NULL)
+        return;
+
+    Apply_Affine_Map(&handle->config.joint_to_motor, ik_joint_deg, motor_joint_deg);
+}
+
+void Kinematic_Motor_To_IKAngle(const DOF6Kinematic_Handle_t *handle,
+                                const Joint6D_t *motor_joint_deg,
+                                Joint6D_t *ik_joint_deg)
+{
+    if (handle == NULL || motor_joint_deg == NULL || ik_joint_deg == NULL)
+        return;
+
+    Apply_Affine_Map(&handle->config.motor_to_joint, motor_joint_deg, ik_joint_deg);
+}
+
+static void Apply_Motor_Limit_By_Index(const ArmConfig_t *config, Joint6D_t *motor_joint_deg, uint8_t index)
+{
+    if (index >= 6 || !config->motor_limit[index].enable)
+        return;
+
+    motor_joint_deg->a[index] = Kinematic_Clamp(motor_joint_deg->a[index],
+                                                config->motor_limit[index].min_deg,
+                                                config->motor_limit[index].max_deg);
+}
+
+void Kinematic_Limit_Motor_Angle(const DOF6Kinematic_Handle_t *handle, Joint6D_t *motor_joint_deg)
+{
+    if (handle == NULL || motor_joint_deg == NULL)
+        return;
+
+    const ArmConfig_t *config = &handle->config;
+
+    Apply_Motor_Limit_By_Index(config, motor_joint_deg, 1U);
+    Apply_Motor_Limit_By_Index(config, motor_joint_deg, 2U);
+
+    for (uint8_t i = 0; i < config->coupling_limit_count && i < 4U; i++)
+    {
+        const MotorCouplingLimit_t *limit = &config->coupling_limits[i];
+        if (!limit->enable || limit->lhs_motor_index >= 6 || limit->rhs_motor_index >= 6)
+            continue;
+
+        float delta = motor_joint_deg->a[limit->lhs_motor_index] - motor_joint_deg->a[limit->rhs_motor_index];
+        if (delta > limit->max_delta_deg)
+            motor_joint_deg->a[limit->lhs_motor_index] = limit->max_delta_deg + motor_joint_deg->a[limit->rhs_motor_index];
+        if (delta < limit->min_delta_deg)
+            motor_joint_deg->a[limit->lhs_motor_index] = limit->min_delta_deg + motor_joint_deg->a[limit->rhs_motor_index];
+    }
+
+    Apply_Motor_Limit_By_Index(config, motor_joint_deg, 4U);
+    for (uint8_t i = 0; i < 6; i++)
+    {
+        if (i != 1U && i != 2U && i != 4U)
+            Apply_Motor_Limit_By_Index(config, motor_joint_deg, i);
+    }
+}
+
+bool Kinematic_SolveIK_To_Motor(DOF6Kinematic_Handle_t *handle,
+                                const Pose6D_t *target_pose,
+                                Joint6D_t *last_valid_ik_joint_deg,
+                                Joint6D_t *motor_joint_deg,
+                                int *best_index)
+{
+    if (handle == NULL || target_pose == NULL || last_valid_ik_joint_deg == NULL || motor_joint_deg == NULL || !handle->initialized)
+        return false;
+
+    DHParameters dh;
+    Vector3 position;
+    Matrix3x3 rotation;
+    Config_To_DH(&handle->config, &dh);
+    Pose_To_Vector_Rotation(handle, target_pose, &position, &rotation);
+
+    InverseKinematicsSolutions internal_solves = Inverse_Kinematics_From_Rotation_Matrix(&position,
+                                                                                         &rotation,
+                                                                                         &dh,
+                                                                                         &handle->flag_beyond_180,
+                                                                                         handle->config.enable_q3_beyond_180_patch);
+    IKSolves_t public_solves;
+    memset(&public_solves, 0, sizeof(public_solves));
+    for (int i = 0; i < internal_solves.count && i < IK_SOLVE_COUNT; i++)
+    {
+        for (uint8_t j = 0; j < 6; j++)
+            public_solves.config[i].a[j] = (float)Rad_To_Deg(internal_solves.angles[i].theta[j]);
+        public_solves.solFlag[i][0] = 1;
+    }
+
+    int selected = Kinematic_Select_Best_Sol(handle, &public_solves, last_valid_ik_joint_deg);
+    if (best_index != NULL)
+        *best_index = selected;
+
+    JointAngles selected_joint;
+    bool solved = true;
+    if (selected == -1 || selected == 255 || selected >= internal_solves.count)
+    {
+        for (uint8_t i = 0; i < 6; i++)
+            selected_joint.theta[i] = handle->current_ik_rad[i];
+        solved = false;
+    }
+    else
+    {
+        selected_joint = internal_solves.angles[selected];
+        JointAngles reference;
+        for (uint8_t i = 0; i < 6; i++)
+            reference.theta[i] = handle->current_ik_rad[i];
+        Fit_Angle_Solution(&selected_joint, &reference);
+        for (uint8_t i = 0; i < 6; i++)
+        {
+            handle->current_ik_rad[i] = selected_joint.theta[i];
+            handle->last_answer_rad[i] = selected_joint.theta[i];
+        }
+    }
+
+    for (uint8_t i = 0; i < 6; i++)
+        last_valid_ik_joint_deg->a[i] = (float)Rad_To_Deg(selected_joint.theta[i]);
+
+    Kinematic_IKAngle_To_Motor(handle, last_valid_ik_joint_deg, motor_joint_deg);
+    Kinematic_Limit_Motor_Angle(handle, motor_joint_deg);
+    return solved;
 }

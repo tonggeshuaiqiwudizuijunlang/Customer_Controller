@@ -61,7 +61,7 @@
   ra\aws\FreeRTOS\FreeRTOS\Source\include\semphr.h \
   ra\fsp\inc\api\r_usb_pcdc_api.h ra\fsp\inc\instances\r_canfd.h \
   ra_cfg\fsp_cfg\r_canfd_cfg.h ra\fsp\inc\api\r_can_api.h \
-  bsp\dwt\bsp_dwt.h modules\step_motor\step_motor.h \
+  bsp\dwt\bsp_dwt.h modules\motor\step_motor\step_motor.h \
   modules\daemon\daemon.h modules\message_center\message_center.h \
   modules\robot_types.h modules\dummy_kinematic\dummy_kinematic_v2.h \
   modules\remote\mc6c.h bsp\uart\bsp_uart.h \

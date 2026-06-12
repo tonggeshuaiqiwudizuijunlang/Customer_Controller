@@ -61,6 +61,6 @@
   ra_cfg\fsp_cfg\r_canfd_cfg.h ra\fsp\inc\api\r_can_api.h \
   application\dummy_cmd.h modules\motor_def.h \
   modules\controller\controller.h bsp\can\bsp_can.h bsp\dwt\bsp_dwt.h \
-  modules\step_motor\step_motor.h modules\daemon\daemon.h \
+  modules\motor\step_motor\step_motor.h modules\daemon\daemon.h \
   modules\message_center\message_center.h modules\robot_types.h \
   modules\dummy_kinematic\dummy_kinematic_v2.h

@@ -1,5 +1,5 @@
 ./objects/vector_data.o: \
-  C:\Users\Xiong\ Sir\Desktop\keil_test\ra_gen\vector_data.c \
+  C:\Users\Xiong\ Sir\Desktop\Customer_Controller\ra_gen\vector_data.c \
   ra\fsp\inc\api\bsp_api.h ra\fsp\inc\api\fsp_common_api.h \
   ra\fsp\inc\fsp_version.h ra_cfg\fsp_cfg\bsp\bsp_cfg.h \
   ra_gen\bsp_clock_cfg.h ra_cfg\fsp_cfg\bsp\bsp_mcu_family_cfg.h \

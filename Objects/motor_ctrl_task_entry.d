@@ -61,8 +61,8 @@
   ra\fsp\inc\api\r_usb_pcdc_api.h ra\fsp\inc\instances\r_canfd.h \
   ra_cfg\fsp_cfg\r_canfd_cfg.h ra\fsp\inc\api\r_can_api.h \
   application\dummy_motormatic.h modules\robot_types.h \
-  modules\step_motor\step_motor.h bsp\dwt\bsp_dwt.h bsp\can\bsp_can.h \
-  modules\daemon\daemon.h modules\motor_def.h \
+  modules\motor\step_motor\step_motor.h bsp\dwt\bsp_dwt.h \
+  bsp\can\bsp_can.h modules\daemon\daemon.h modules\motor_def.h \
   modules\controller\controller.h \
   modules\message_center\message_center.h \
   modules\dummy_kinematic\dummy_kinematic_v2.h

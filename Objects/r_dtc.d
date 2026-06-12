@@ -1,5 +1,5 @@
 ./objects/r_dtc.o: \
-  C:\Users\Xiong\ Sir\Desktop\keil_test\ra\fsp\src\r_dtc\r_dtc.c \
+  C:\Users\Xiong\ Sir\Desktop\Customer_Controller\ra\fsp\src\r_dtc\r_dtc.c \
   ra\fsp\inc\instances\r_dtc.h ra\fsp\inc\api\bsp_api.h \
   ra\fsp\inc\api\fsp_common_api.h ra\fsp\inc\fsp_version.h \
   ra_cfg\fsp_cfg\bsp\bsp_cfg.h ra_gen\bsp_clock_cfg.h \

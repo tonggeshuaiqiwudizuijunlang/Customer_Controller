@@ -19,12 +19,15 @@ typedef struct CANInstance
     /* 接收缓冲区
      * 回调触发时，这里面存放了刚收到的数据
      */
-    uint8_t rx_buff[8]; 
-    uint8_t rx_len;        // 实际收到长度
-    uint32_t current_rx_id;// 刚收到的 ID (含数据帧 ID + Command)
+    uint8_t rx_buff[8];
+    uint8_t rx_len;         // 实际收到长度
+    uint32_t current_rx_id; // 刚收到的 ID (含数据帧 ID + Command)
+    uint32_t rx_id;         // 期望接收 ID，0 表示不过滤
+    uint32_t tx_id;         // 默认发送 ID
+    void *id;               // 上层实例指针
 
     /* 发送缓冲区 */
-    uint8_t tx_buff[8]; 
+    uint8_t tx_buff[8];
     can_frame_t tx_frame;  // FSP 底层发送帧对象
 
     /* 用户回调函数 */
@@ -37,12 +40,16 @@ typedef struct
 {
     can_ctrl_t * p_ctrl;
     can_cfg_t const * p_cfg;
+    uint32_t tx_id;
+    uint32_t rx_id;
+    void *id;
     /* 接收到任何数据都会调用此回调 */
     void (*can_module_callback)(CANInstance *);
 } CAN_Init_Config_s;
 
 // CAN初始化
 CANInstance *BSP_CAN_Init(CAN_Init_Config_s *config);
+CANInstance *CANRegister(CAN_Init_Config_s *config);
 
 /**
  * @brief 修改CAN发送报文的数据帧长度;注意最大长度为8,在没有进行修改的时候,默认长度为8

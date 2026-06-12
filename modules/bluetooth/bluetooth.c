@@ -84,10 +84,15 @@ RX_BT_Data_s* BT_Init(uart_ctrl_t *p_ctrl, uart_cfg_t const *p_cfg)
  */
 bool BT_SendData(uint8_t* tx_data, uint16_t len)
 {
-    if (bt_uart_instance == NULL || tx_data == NULL || len == 0) return false;
+    if (bt_uart_instance == NULL || tx_data == NULL || len == 0 || bt_uart_instance->tx_busy) return false;
 
     // 将结构体作为二进制字节流推入 BSP 层发送
+    bt_uart_instance->tx_busy = true;
     fsp_err_t err = R_SCI_UART_Write(bt_uart_instance->p_ctrl, tx_data, len);
-    
+    if (err != FSP_SUCCESS)
+    {
+        bt_uart_instance->tx_busy = false;
+    }
+
     return (err == FSP_SUCCESS);
 }

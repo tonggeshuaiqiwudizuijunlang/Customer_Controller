@@ -1,5 +1,5 @@
 ./objects/event_groups.o: \
-  C:\Users\Xiong\ Sir\Desktop\keil_test\ra\aws\FreeRTOS\FreeRTOS\Source\event_groups.c \
+  C:\Users\Xiong\ Sir\Desktop\Customer_Controller\ra\aws\FreeRTOS\FreeRTOS\Source\event_groups.c \
   ra\aws\FreeRTOS\FreeRTOS\Source\include\FreeRTOS.h \
   ra_cfg\aws\FreeRTOSConfig.h ra\fsp\inc\api\bsp_api.h \
   ra\fsp\inc\api\fsp_common_api.h ra\fsp\inc\fsp_version.h \

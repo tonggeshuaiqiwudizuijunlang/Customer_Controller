@@ -1,0 +1,47 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build task",
+            "type": "shell",
+            "command": "mingw32-make",
+            "args": [
+                "-j24"
+            ],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "download dap",
+            "type": "shell",
+            "command": "mingw32-make -j24 && mingw32-make download_dap",
+            "args": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "download jlink",
+            "type": "shell",
+            "command": "mingw32-make -j24 && mingw32-make download_jlink",
+            "args": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "log",
+            "type": "shell",
+            "command": "JlinkRTTClient",
+            "args": [],
+            "problemMatcher": []
+        }
+    ]
+}

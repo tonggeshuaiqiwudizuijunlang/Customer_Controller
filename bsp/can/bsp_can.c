@@ -1,6 +1,10 @@
 #include "bsp_can.h"
 
+#define CAN_MX_REGISTER_CNT 16
+
 static CANInstance *can0_instance = NULL;
+static CANInstance *can_instance[CAN_MX_REGISTER_CNT] = {NULL};
+static uint8_t can_idx = 0;
 
 /* 1. 定义过滤器规则 (全接收 Accept All) */
 const canfd_afl_entry_t can_afl[CANFD_CFG_AFL_CH0_RULE_NUM] =
@@ -29,35 +33,42 @@ const canfd_afl_entry_t can_afl[CANFD_CFG_AFL_CH0_RULE_NUM] =
 CANInstance *BSP_CAN_Init(CAN_Init_Config_s * config)
 {
     fsp_err_t err;
-    /* 1. 防止重复初始化 */
-    if (can0_instance != NULL) return can0_instance;
 
-    /* 2. 分配内存 */
+    if (config == NULL || can_idx >= CAN_MX_REGISTER_CNT)
+        return NULL;
+
+    if (can0_instance == NULL)
+    {
+        err = R_CANFD_Open(config->p_ctrl, config->p_cfg);
+        if (FSP_SUCCESS != err)
+        {
+            return NULL;
+        }
+    }
+
     CANInstance *instance = (CANInstance *)malloc(sizeof(CANInstance));
     if (instance == NULL) return NULL;
     memset(instance, 0, sizeof(CANInstance));
 
-    /* 3. 保存句柄与回调 */
     instance->p_ctrl = config->p_ctrl;
-    instance->p_cfg  = config->p_cfg; // 直接保存 RASC 的原始配置 (Flash中的 const)
+    instance->p_cfg  = config->p_cfg;
+    instance->tx_id = config->tx_id;
+    instance->rx_id = config->rx_id;
+    instance->id = config->id;
     instance->can_module_callback = config->can_module_callback;
-    
-    can0_instance = instance;
 
-    /* 4. 初始化 FSP CAN 模块 (不再使用 config_override，直接用原始配置) */
-    /* 注意：这里曾经造成死机的 override 代码已经被删除了 */
-    err = R_CANFD_Open(instance->p_ctrl, instance->p_cfg);
-
-    if (FSP_SUCCESS != err)
+    can_instance[can_idx++] = instance;
+    if (can0_instance == NULL)
     {
-        /* 初始化失败处理 */
-        free(instance);
-        can0_instance = NULL;
-        // 可以在这里打个断点查看 err 的值，排查具体错误
-        return NULL; 
+        can0_instance = instance;
     }
 
     return instance;
+}
+
+CANInstance *CANRegister(CAN_Init_Config_s *config)
+{
+    return BSP_CAN_Init(config);
 }
 /**
  * @brief 设置 DLC
@@ -77,23 +88,26 @@ void CANSetDLC(CANInstance *_instance, uint8_t length)
  */
 void can_callback(can_callback_args_t *p_args)
 {
-    /* 直接使用全局单例，无需查找 */
-    CANInstance *instance = can0_instance;
-    /* 2. 只处理接收事件 */
     if (CAN_EVENT_RX_COMPLETE == p_args->event)
     {
-        /* 提取核心信息 */
-        instance->current_rx_id = p_args->frame.id;
-        instance->rx_len = p_args->frame.data_length_code;
-
-        /* 拷贝数据 */
-        uint8_t copy_len = instance->rx_len > 8 ? 8 : instance->rx_len;
-        memcpy(instance->rx_buff, p_args->frame.data, copy_len);
-
-        /* 直接调用用户的回调，不进行任何 ID 判断 */
-        if (instance->can_module_callback)
+        for (uint8_t i = 0; i < can_idx; i++)
         {
-            instance->can_module_callback(instance);
+            CANInstance *instance = can_instance[i];
+            if (instance == NULL)
+                continue;
+            if (instance->rx_id != 0 && instance->rx_id != p_args->frame.id)
+                continue;
+
+            instance->current_rx_id = p_args->frame.id;
+            instance->rx_len = p_args->frame.data_length_code;
+
+            uint8_t copy_len = instance->rx_len > 8 ? 8 : instance->rx_len;
+            memcpy(instance->rx_buff, p_args->frame.data, copy_len);
+
+            if (instance->can_module_callback)
+            {
+                instance->can_module_callback(instance);
+            }
         }
     }
 }

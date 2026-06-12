@@ -1,6 +1,6 @@
 ./objects/daemon_task.o: \
-  C:\Users\Xiong\ Sir\Desktop\keil_test\ra_gen\daemon_task.c \
-  C:\Users\Xiong\ Sir\Desktop\keil_test\ra_gen\daemon_task.h \
+  C:\Users\Xiong\ Sir\Desktop\Customer_Controller\ra_gen\daemon_task.c \
+  C:\Users\Xiong\ Sir\Desktop\Customer_Controller\ra_gen\daemon_task.h \
   ra\fsp\inc\api\bsp_api.h ra\fsp\inc\api\fsp_common_api.h \
   ra\fsp\inc\fsp_version.h ra_cfg\fsp_cfg\bsp\bsp_cfg.h \
   ra_gen\bsp_clock_cfg.h ra_cfg\fsp_cfg\bsp\bsp_mcu_family_cfg.h \
@@ -50,8 +50,8 @@
   ra\aws\FreeRTOS\FreeRTOS\Source\include\list.h \
   ra\aws\FreeRTOS\FreeRTOS\Source\include\semphr.h \
   ra\aws\FreeRTOS\FreeRTOS\Source\include\queue.h \
-  C:\Users\Xiong\ Sir\Desktop\keil_test\ra_gen\hal_data.h \
-  C:\Users\Xiong\ Sir\Desktop\keil_test\ra_gen\common_data.h \
+  C:\Users\Xiong\ Sir\Desktop\Customer_Controller\ra_gen\hal_data.h \
+  C:\Users\Xiong\ Sir\Desktop\Customer_Controller\ra_gen\common_data.h \
   ra\fsp\inc\instances\r_ioport.h ra\fsp\inc\api\r_ioport_api.h \
   ra_cfg\fsp_cfg\r_ioport_cfg.h ra_cfg\fsp_cfg\bsp\bsp_pin_cfg.h \
   ra\fsp\inc\instances\r_dtc.h ra\fsp\inc\api\r_transfer_api.h \

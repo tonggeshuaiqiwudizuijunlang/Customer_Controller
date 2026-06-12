@@ -1,5 +1,5 @@
 ./objects/heap_4.o: \
-  C:\Users\Xiong\ Sir\Desktop\keil_test\ra\aws\FreeRTOS\FreeRTOS\Source\portable\MemMang\heap_4.c \
+  C:\Users\Xiong\ Sir\Desktop\Customer_Controller\ra\aws\FreeRTOS\FreeRTOS\Source\portable\MemMang\heap_4.c \
   ra\aws\FreeRTOS\FreeRTOS\Source\include\FreeRTOS.h \
   ra_cfg\aws\FreeRTOSConfig.h ra\fsp\inc\api\bsp_api.h \
   ra\fsp\inc\api\fsp_common_api.h ra\fsp\inc\fsp_version.h \

@@ -1,6 +1,6 @@
 ./objects/dummy_motormatic.o: application\dummy_motormatic.c \
   application\dummy_motormatic.h modules\robot_types.h \
-  modules\step_motor\step_motor.h bsp\dwt\bsp_dwt.h \
+  modules\motor\step_motor\step_motor.h bsp\dwt\bsp_dwt.h \
   ra\arm\CMSIS_6\CMSIS\Core\Include\cmsis_compiler.h \
   ra\arm\CMSIS_6\CMSIS\Core\Include\cmsis_armclang.h ra_gen\hal_data.h \
   ra\fsp\inc\api\bsp_api.h ra\fsp\inc\api\fsp_common_api.h \
@@ -64,4 +64,6 @@
   bsp\can\bsp_can.h modules\daemon\daemon.h modules\motor_def.h \
   modules\controller\controller.h \
   modules\message_center\message_center.h \
-  modules\dummy_kinematic\dummy_kinematic_v2.h
+  modules\dummy_kinematic\dummy_kinematic_v2.h \
+  modules\motor\DJImotor\dji_motor.h modules\motor\RSmotor\rs_motor.h \
+  modules\imu\DM_IMU\DM_IMU.h modules\imu\ex_imu\imu_can.h

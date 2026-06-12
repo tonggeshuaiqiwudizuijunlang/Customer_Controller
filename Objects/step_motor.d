@@ -1,5 +1,5 @@
-./objects/step_motor.o: modules\step_motor\step_motor.c \
-  modules\step_motor\step_motor.h bsp\dwt\bsp_dwt.h \
+./objects/step_motor.o: modules\motor\step_motor\step_motor.c \
+  modules\motor\step_motor\step_motor.h bsp\dwt\bsp_dwt.h \
   ra\arm\CMSIS_6\CMSIS\Core\Include\cmsis_compiler.h \
   ra\arm\CMSIS_6\CMSIS\Core\Include\cmsis_armclang.h ra_gen\hal_data.h \
   ra\fsp\inc\api\bsp_api.h ra\fsp\inc\api\fsp_common_api.h \
