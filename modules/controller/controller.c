@@ -13,6 +13,15 @@
 
 /* ----------------------------下面是pid优化环节的实现---------------------------- */
 
+#define PID_MIN_DT 1e-6f
+
+static float PID_Safe_Dt(float dt)
+{
+    if (!isfinite(dt) || dt < PID_MIN_DT)
+        return PID_MIN_DT;
+    return dt;
+}
+
 // 梯形积分
 static void f_Trapezoid_Intergral(PIDInstance *pid)
 {
@@ -25,11 +34,13 @@ static void f_Changing_Integration_Rate(PIDInstance *pid)
 {
     if (pid->Err * pid->Iout > 0)
     {
+        float abs_err = fabsf(pid->Err);
+
         // 积分呈累积趋势
-        if (abs(pid->Err) <= pid->CoefB)
+        if (abs_err <= pid->CoefB)
             return; // Full integral
-        if (abs(pid->Err) <= (pid->CoefA + pid->CoefB))
-            pid->ITerm *= (pid->CoefA - abs(pid->Err) + pid->CoefB) / pid->CoefA;
+        if (abs_err <= (pid->CoefA + pid->CoefB) && fabsf(pid->CoefA) > PID_MIN_DT)
+            pid->ITerm *= (pid->CoefA - abs_err + pid->CoefB) / pid->CoefA;
         else // 最大阈值,不使用积分
             pid->ITerm = 0;
     }
@@ -40,7 +51,7 @@ static void f_Integral_Limit(PIDInstance *pid)
     static float temp_Output, temp_Iout;
     temp_Iout = pid->Iout + pid->ITerm;
     temp_Output = pid->Pout + pid->Iout + pid->Dout;
-    if (abs(temp_Output) > pid->MaxOut)
+    if (fabsf(temp_Output) > pid->MaxOut)
     {
         if (pid->Err * pid->Iout > 0) // 积分却还在累积
         {
@@ -69,15 +80,23 @@ static void f_Derivative_On_Measurement(PIDInstance *pid)
 // 微分滤波(采集微分时,滤除高频噪声)
 static void f_Derivative_Filter(PIDInstance *pid)
 {
-    pid->Dout = pid->Dout * pid->dt / (pid->Derivative_LPF_RC + pid->dt) +
-                pid->Last_Dout * pid->Derivative_LPF_RC / (pid->Derivative_LPF_RC + pid->dt);
+    float denominator = pid->Derivative_LPF_RC + pid->dt;
+    if (!isfinite(denominator) || denominator < PID_MIN_DT)
+        denominator = PID_MIN_DT;
+
+    pid->Dout = pid->Dout * pid->dt / denominator +
+                pid->Last_Dout * pid->Derivative_LPF_RC / denominator;
 }
 
 // 输出滤波
 static void f_Output_Filter(PIDInstance *pid)
 {
-    pid->Output = pid->Output * pid->dt / (pid->Output_LPF_RC + pid->dt) +
-                  pid->Last_Output * pid->Output_LPF_RC / (pid->Output_LPF_RC + pid->dt);
+    float denominator = pid->Output_LPF_RC + pid->dt;
+    if (!isfinite(denominator) || denominator < PID_MIN_DT)
+        denominator = PID_MIN_DT;
+
+    pid->Output = pid->Output * pid->dt / denominator +
+                  pid->Last_Output * pid->Output_LPF_RC / denominator;
 }
 
 // 输出限幅
@@ -150,7 +169,7 @@ float PIDCalculate(PIDInstance *pid, float measure, float ref)
     if (pid->Improve & PID_ErrorHandle)
         f_PID_ErrorHandle(pid);
 
-    pid->dt = DWT_GetDeltaT(&pid->DWT_CNT); // 获取两次pid计算的时间间隔,用于积分和微分
+    pid->dt = PID_Safe_Dt(DWT_GetDeltaT(&pid->DWT_CNT)); // 获取两次pid计算的时间间隔,用于积分和微分
 
     // 保存上次的测量值和误差,计算当前error
     pid->Measure = measure;
@@ -158,7 +177,7 @@ float PIDCalculate(PIDInstance *pid, float measure, float ref)
     pid->Err = pid->Ref - pid->Measure;
 
     // 如果在死区外,则计算PID
-    if (abs(pid->Err) > pid->DeadBand)
+    if (fabsf(pid->Err) > pid->DeadBand)
     {
         // 基本的pid计算,使用位置式
         pid->Pout = pid->Kp * pid->Err;
@@ -222,7 +241,7 @@ float PIDCalculate1(PIDInstance *pid, float measure, float ref)
     if (pid->Improve & PID_ErrorHandle)
         f_PID_ErrorHandle(pid);
 
-    pid->dt = DWT_GetDeltaT(&pid->DWT_CNT); // 获取两次PID计算的时间间隔, 用于积分和微分
+    pid->dt = PID_Safe_Dt(DWT_GetDeltaT(&pid->DWT_CNT)); // 获取两次PID计算的时间间隔, 用于积分和微分
 
     // 保存当前测量值和参考值, 计算当前误差
     pid->Measure = measure;
@@ -230,7 +249,7 @@ float PIDCalculate1(PIDInstance *pid, float measure, float ref)
     pid->Err = pid->Ref - pid->Measure;
 
     // 如果在死区外, 则计算增量式PID
-    if (abs(pid->Err) > pid->DeadBand)
+    if (fabsf(pid->Err) > pid->DeadBand)
     {
         // 基本的增量式PID计算
         float deltaP = pid->Kp * (pid->Err - pid->Last_Err);                                    // 比例增量

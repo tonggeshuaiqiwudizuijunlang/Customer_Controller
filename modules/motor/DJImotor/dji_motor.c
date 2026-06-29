@@ -8,6 +8,21 @@ static DJIMotorInstance *dji_motor_instance[DJI_MOTOR_CNT] = {NULL};
 static CANInstance sender_assignment[3];
 static uint8_t sender_enable_flag[3] = {0};
 
+static float DJIMotor_Limit_Output(const DJIMotorInstance *motor, float output)
+{
+    float max_output = 32767.0f;
+    if (motor != NULL && motor->motor_controller.current_PID.MaxOut > 0.0f)
+        max_output = motor->motor_controller.current_PID.MaxOut;
+
+    if (max_output > 32767.0f)
+        max_output = 32767.0f;
+    if (output > max_output)
+        return max_output;
+    if (output < -max_output)
+        return -max_output;
+    return output;
+}
+
 static void MotorSenderGrouping(DJIMotorInstance *motor, CAN_Init_Config_s *config)
 {
     uint8_t motor_id = (uint8_t)(config->tx_id - 1U);
@@ -231,7 +246,7 @@ void DJIMotorControl(void)
         if (motor_setting->feedback_reverse_flag == FEEDBACK_DIRECTION_REVERSE)
             pid_ref *= -1.0f;
 
-        int16_t set = (int16_t)pid_ref;
+        int16_t set = (int16_t)DJIMotor_Limit_Output(motor, pid_ref);
         uint8_t group = motor->sender_group;
         uint8_t num = motor->message_num;
         sender_assignment[group].tx_buff[2U * num] = (uint8_t)(set >> 8);

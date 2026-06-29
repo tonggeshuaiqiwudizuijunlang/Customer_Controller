@@ -97,7 +97,7 @@ static void Controller_Motor_Register(void)
                 .Kp = 15.0f,
                 .Ki = 1.0f,
                 .Kd = 0.0f,
-                .Improve = PID_Integral_Limit,
+                .Improve = PID_Integral_Limit || PID_Derivative_On_Measurement || PID_Trapezoid_Intergral,
                 .IntegralLimit = 10000.0f,
                 .MaxOut = 20000.0f,
             },
@@ -328,12 +328,18 @@ static void Dummy_Motormatic_Build_Kinematic_Config(ArmConfig_t *config)
     config->motor_limit[4].min_deg = -130.0f;
     config->motor_limit[4].max_deg = 130.0f;
 
+    // joint5 与 motor5 为 1:1 映射，可直接参与 IK 候选解筛选；q2/q3 优先由 motor/coupling 约束筛选。
+    config->joint_limit[4].enable = true;
+    config->joint_limit[4].min_deg = -130.0f;
+    config->joint_limit[4].max_deg = 130.0f;
+
     config->coupling_limit_count = 1U;
     config->coupling_limits[0].enable = true;
     config->coupling_limits[0].lhs_motor_index = 2U;
     config->coupling_limits[0].rhs_motor_index = 1U;
     config->coupling_limits[0].min_delta_deg = -135.0f;
     config->coupling_limits[0].max_delta_deg = 0.0f;
+    // motor_limit 与 coupling_limit 已在 IK 选解阶段作为硬约束，最终 clamp 只作为安全兜底。
 
     config->select_weight[0] = 7.0f;
     config->select_weight[1] = 6.0f;

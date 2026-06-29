@@ -25,7 +25,7 @@
   ra\fsp\inc\api\..\..\src\bsp\mcu\all\bsp_mmf.h \
   ra\fsp\inc\api\..\..\src\bsp\mcu\all\bsp_ipc.h \
   ra\fsp\inc\api\..\..\src\bsp\mcu\all\bsp_ospi_b.h \
-  ..\keil_test\bsp_linker_info.h \
+  C:\Users\Xiong\ Sir\Desktop\Customer_Controller\bsp_linker_info.h \
   ra\fsp\inc\api\..\..\src\bsp\mcu\all\bsp_register_protection.h \
   ra\fsp\inc\api\..\..\src\bsp\mcu\all\bsp_irq.h \
   ra\fsp\inc\api\..\..\src\bsp\mcu\all\bsp_io.h \
@@ -59,8 +59,6 @@
   ra\aws\FreeRTOS\FreeRTOS\Source\include\timers.h \
   ra\fsp\inc\api\r_usb_pcdc_api.h ra\fsp\inc\instances\r_canfd.h \
   ra_cfg\fsp_cfg\r_canfd_cfg.h ra\fsp\inc\api\r_can_api.h \
-  application\dummy_cmd.h modules\motor_def.h \
-  modules\controller\controller.h bsp\can\bsp_can.h bsp\dwt\bsp_dwt.h \
-  modules\motor\step_motor\step_motor.h modules\daemon\daemon.h \
-  modules\message_center\message_center.h modules\robot_types.h \
+  application\dummy_cmd.h modules\robot\robot_types.h \
+  application\dummy_motormatic.h \
   modules\dummy_kinematic\dummy_kinematic_v2.h

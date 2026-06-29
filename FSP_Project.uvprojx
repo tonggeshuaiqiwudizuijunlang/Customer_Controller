@@ -510,6 +510,16 @@
               <FilePath>.\modules\remote\mc6c.h</FilePath>
             </File>
             <File>
+              <FileName>flysky.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\modules\remote\flysky.c</FilePath>
+            </File>
+            <File>
+              <FileName>flysky.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\modules\remote\flysky.h</FilePath>
+            </File>
+            <File>
               <FileName>dummy_kinematic_v2.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\modules\dummy_kinematic\dummy_kinematic_v2.c</FilePath>

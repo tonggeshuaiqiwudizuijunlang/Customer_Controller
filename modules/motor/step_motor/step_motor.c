@@ -402,7 +402,12 @@ void Joint_Motor_Gripper_Task(Gripper_Config_t *config, uint8_t gripper_mode)
                 }
             }
             else
-                loop_count -= 50;
+            {
+                if (loop_count > 50U)
+                    loop_count -= 50U;
+                else
+                    loop_count = 0U;
+            }
         }
         else if (grab_state == GRIPPER_STATE_LOCKED)
         {

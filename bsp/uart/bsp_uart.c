@@ -10,9 +10,10 @@ static USARTInstance *usart_instance[DEVICE_USART_CNT] = {NULL};
 
 USARTInstance *USARTRegister(USART_Init_Config_s *init_config)
 {
-    if (idx >= DEVICE_USART_CNT) return NULL;
+    if (init_config == NULL || idx >= DEVICE_USART_CNT) return NULL;
 
     USARTInstance *instance = (USARTInstance *)malloc(sizeof(USARTInstance));
+    if (instance == NULL) return NULL;
     memset(instance, 0, sizeof(USARTInstance));
 
     instance->p_ctrl = init_config->p_uart_ctrl;
@@ -31,8 +32,15 @@ USARTInstance *USARTRegister(USART_Init_Config_s *init_config)
     }
 
     /* 启动 DTC 接收 */
-    R_SCI_UART_Read(instance->p_ctrl, instance->recv_buff, instance->recv_buff_size);
-    
+    err = R_SCI_UART_Read(instance->p_ctrl, instance->recv_buff, instance->recv_buff_size);
+    if (FSP_SUCCESS != err)
+    {
+        R_SCI_UART_Close(instance->p_ctrl);
+        free(instance);
+        idx--;
+        return NULL;
+    }
+
     return instance;
 }
 
@@ -92,9 +100,10 @@ void UART_Global_Callback(uart_callback_args_t *p_args)
 void USART_Force_Restart(USARTInstance *_instance)
 {
     if (!_instance) return;
-    // 停止旧的
-    // R_SCI_UART_Abort(_instance->p_ctrl, UART_DIR_RX);
-    // 开启新的
-    // R_SCI_UART_Read(_instance->p_ctrl, _instance->recv_buff, _instance->recv_buff_size);
+
+    _instance->head = 0U;
+    _instance->tail = 0U;
+    R_SCI_UART_Abort(_instance->p_ctrl, UART_DIR_RX);
+    (void)R_SCI_UART_Read(_instance->p_ctrl, _instance->recv_buff, _instance->recv_buff_size);
 }
 

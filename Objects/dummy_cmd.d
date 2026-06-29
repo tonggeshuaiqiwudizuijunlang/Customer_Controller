@@ -1,9 +1,9 @@
 ./objects/dummy_cmd.o: application\dummy_cmd.c application\dummy_cmd.h \
-  modules\motor_def.h modules\controller\controller.h bsp\can\bsp_can.h \
-  ra_gen\hal_data.h ra\fsp\inc\api\bsp_api.h \
-  ra\fsp\inc\api\fsp_common_api.h ra\fsp\inc\fsp_version.h \
-  ra_cfg\fsp_cfg\bsp\bsp_cfg.h ra_gen\bsp_clock_cfg.h \
-  ra_cfg\fsp_cfg\bsp\bsp_mcu_family_cfg.h \
+  modules\robot\robot_types.h modules\message_center\message_center.h \
+  modules\remote\mc6c.h bsp\uart\bsp_uart.h ra_gen\hal_data.h \
+  ra\fsp\inc\api\bsp_api.h ra\fsp\inc\api\fsp_common_api.h \
+  ra\fsp\inc\fsp_version.h ra_cfg\fsp_cfg\bsp\bsp_cfg.h \
+  ra_gen\bsp_clock_cfg.h ra_cfg\fsp_cfg\bsp\bsp_mcu_family_cfg.h \
   ra_cfg\fsp_cfg\bsp\bsp_mcu_device_pn_cfg.h \
   ra_cfg\fsp_cfg\bsp\bsp_mcu_device_cfg.h \
   ra_cfg\fsp_cfg\bsp\..\..\..\ra\fsp\src\bsp\mcu\ra6m5\bsp_mcu_info.h \
@@ -27,7 +27,7 @@
   ra\fsp\inc\api\..\..\src\bsp\mcu\all\bsp_mmf.h \
   ra\fsp\inc\api\..\..\src\bsp\mcu\all\bsp_ipc.h \
   ra\fsp\inc\api\..\..\src\bsp\mcu\all\bsp_ospi_b.h \
-  ..\keil_test\bsp_linker_info.h \
+  C:\Users\Xiong\ Sir\Desktop\Customer_Controller\bsp_linker_info.h \
   ra\fsp\inc\api\..\..\src\bsp\mcu\all\bsp_register_protection.h \
   ra\fsp\inc\api\..\..\src\bsp\mcu\all\bsp_irq.h \
   ra\fsp\inc\api\..\..\src\bsp\mcu\all\bsp_io.h \
@@ -61,8 +61,6 @@
   ra\aws\FreeRTOS\FreeRTOS\Source\include\semphr.h \
   ra\fsp\inc\api\r_usb_pcdc_api.h ra\fsp\inc\instances\r_canfd.h \
   ra_cfg\fsp_cfg\r_canfd_cfg.h ra\fsp\inc\api\r_can_api.h \
-  bsp\dwt\bsp_dwt.h modules\motor\step_motor\step_motor.h \
-  modules\daemon\daemon.h modules\message_center\message_center.h \
-  modules\robot_types.h modules\dummy_kinematic\dummy_kinematic_v2.h \
-  modules\remote\mc6c.h bsp\uart\bsp_uart.h \
-  modules\bluetooth\bluetooth.h modules\vision\vision.h
+  modules\daemon\daemon.h modules\bluetooth\bluetooth.h \
+  modules\vision\vision.h modules\controller\controller.h \
+  bsp\dwt\bsp_dwt.h

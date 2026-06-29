@@ -1,8 +1,7 @@
 ./objects/dummy_motormatic.o: application\dummy_motormatic.c \
-  application\dummy_motormatic.h modules\robot_types.h \
-  modules\motor\step_motor\step_motor.h bsp\dwt\bsp_dwt.h \
-  ra\arm\CMSIS_6\CMSIS\Core\Include\cmsis_compiler.h \
-  ra\arm\CMSIS_6\CMSIS\Core\Include\cmsis_armclang.h ra_gen\hal_data.h \
+  application\dummy_motormatic.h modules\robot\robot_types.h \
+  modules\dummy_kinematic\dummy_kinematic_v2.h \
+  modules\motor\DJImotor\dji_motor.h bsp\can\bsp_can.h ra_gen\hal_data.h \
   ra\fsp\inc\api\bsp_api.h ra\fsp\inc\api\fsp_common_api.h \
   ra\fsp\inc\fsp_version.h ra_cfg\fsp_cfg\bsp\bsp_cfg.h \
   ra_gen\bsp_clock_cfg.h ra_cfg\fsp_cfg\bsp\bsp_mcu_family_cfg.h \
@@ -16,6 +15,8 @@
   ra_gen\vector_data.h \
   ra\fsp\inc\api\..\..\src\bsp\mcu\all\bsp_exceptions.h \
   ra\fsp\inc\api\..\..\src\bsp\cmsis\Device\RENESAS\Include\renesas.h \
+  ra\arm\CMSIS_6\CMSIS\Core\Include\cmsis_compiler.h \
+  ra\arm\CMSIS_6\CMSIS\Core\Include\cmsis_armclang.h \
   ra\fsp\inc\api\..\..\src\bsp\cmsis\Device\RENESAS\Include\R7FA6M5BH.h \
   ra\arm\CMSIS_6\CMSIS\Core\Include\core_cm33.h \
   ra\fsp\inc\api\..\..\src\bsp\cmsis\Device\RENESAS\Include\system.h \
@@ -27,7 +28,7 @@
   ra\fsp\inc\api\..\..\src\bsp\mcu\all\bsp_mmf.h \
   ra\fsp\inc\api\..\..\src\bsp\mcu\all\bsp_ipc.h \
   ra\fsp\inc\api\..\..\src\bsp\mcu\all\bsp_ospi_b.h \
-  ..\keil_test\bsp_linker_info.h \
+  C:\Users\Xiong\ Sir\Desktop\Customer_Controller\bsp_linker_info.h \
   ra\fsp\inc\api\..\..\src\bsp\mcu\all\bsp_register_protection.h \
   ra\fsp\inc\api\..\..\src\bsp\mcu\all\bsp_irq.h \
   ra\fsp\inc\api\..\..\src\bsp\mcu\all\bsp_io.h \
@@ -61,9 +62,7 @@
   ra\aws\FreeRTOS\FreeRTOS\Source\include\semphr.h \
   ra\fsp\inc\api\r_usb_pcdc_api.h ra\fsp\inc\instances\r_canfd.h \
   ra_cfg\fsp_cfg\r_canfd_cfg.h ra\fsp\inc\api\r_can_api.h \
-  bsp\can\bsp_can.h modules\daemon\daemon.h modules\motor_def.h \
-  modules\controller\controller.h \
-  modules\message_center\message_center.h \
-  modules\dummy_kinematic\dummy_kinematic_v2.h \
-  modules\motor\DJImotor\dji_motor.h modules\motor\RSmotor\rs_motor.h \
+  bsp\dwt\bsp_dwt.h modules\controller\controller.h \
+  modules\motor\motor_def.h modules\message_center\message_center.h \
+  modules\daemon\daemon.h modules\motor\RSmotor\rs_motor.h \
   modules\imu\DM_IMU\DM_IMU.h modules\imu\ex_imu\imu_can.h

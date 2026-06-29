@@ -91,13 +91,13 @@ void MC_Remote_Ctrl(void)
     {
         if (bt_rx_data->header == 0xAA && bt_rx_data->tailer == 0xFFFB)
         {
-            dummy_cmd_send.arm_mode = ARM_CARTESIAN_MODE;
-            dummy_cmd_send.target_x = bt_rx_data->target_x;
-            dummy_cmd_send.target_y = bt_rx_data->target_y;
-            dummy_cmd_send.target_z = bt_rx_data->target_z;
-            dummy_cmd_send.target_roll = bt_rx_data->target_roll;
-            dummy_cmd_send.target_pitch = bt_rx_data->target_pitch;
-            dummy_cmd_send.target_yaw = bt_rx_data->target_yaw;
+            dummy_cmd_send.arm_mode = ARM_PC_MODE;
+            dummy_cmd_send.joint1_angle = bt_rx_data->joint1;
+            dummy_cmd_send.joint2_angle = bt_rx_data->joint2;
+            dummy_cmd_send.joint3_angle = bt_rx_data->joint3;
+            dummy_cmd_send.joint4_angle = bt_rx_data->joint4;
+            dummy_cmd_send.joint5_angle = bt_rx_data->joint5;
+            dummy_cmd_send.joint6_angle = bt_rx_data->joint6;
             dummy_cmd_send.gripper_mode = bt_rx_data->gripper_state ? GRIPPER_AUTO_GRAB : GRIPPER_RELEASE;
         }
         else
@@ -176,12 +176,21 @@ void Vision_Set_FeedData(void)
 void Bt_Set_FeedData(void)
 {
     bt_tx_data.header = 0x5A;
+#if (BT_TX_PACKET_MODE == BT_TX_MODE_DEBUG_POSE)
+    bt_tx_data.x = dummy_fetch_data.cur_x;
+    bt_tx_data.y = dummy_fetch_data.cur_y;
+    bt_tx_data.z = dummy_fetch_data.cur_z;
+    bt_tx_data.roll = dummy_fetch_data.cur_roll;
+    bt_tx_data.pitch = dummy_fetch_data.cur_pitch;
+    bt_tx_data.yaw = dummy_fetch_data.cur_yaw;
+#else
     bt_tx_data.theta1 = dummy_fetch_data.joint_motor[0].reduction_angle;
     bt_tx_data.theta2 = dummy_fetch_data.joint_motor[1].reduction_angle;
     bt_tx_data.theta3 = dummy_fetch_data.joint_motor[2].reduction_angle;
     bt_tx_data.theta4 = dummy_fetch_data.joint_motor[3].reduction_angle;
     bt_tx_data.theta5 = dummy_fetch_data.joint_motor[4].reduction_angle;
     bt_tx_data.theta6 = dummy_fetch_data.joint_motor[5].reduction_angle;
+#endif
 
     uint8_t all_finished = 1;
     for (int i = 0; i < 6; i++)

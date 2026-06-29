@@ -890,3 +890,31 @@ ControllerDeltaConfig_t
 6. 再考虑函数重命名和配置结构拆分。
 
 当前版本适合作为 `rm_gongcheng_base-Delta` 控制器算法 baseline。若新机械臂尺寸不同，优先在 `Dummy_Motormatic_Build_Kinematic_Config()` 中调整 DH、限位和映射配置，而不是先改 IK 公式本身。
+
+---
+
+## 10. 本次完善记录（2026-06-12）
+
+已按上述优先级完成第一批低风险完善，重点是让 IK 选解先满足机械/电机约束，再进入连续性 cost 选择：
+
+1. `Kinematic_Select_Best_Sol()` 已在 cost 计算前加入候选解合法性筛选：
+   - `joint_limit[]` 启用时先过滤 IK 关节角；
+   - 候选 IK 角会先经 `joint_to_motor` 映射为电机角；
+   - `motor_limit[]` 与 `coupling_limits[]` 作为硬约束参与筛选；
+   - 最后的 `Kinematic_Limit_Motor_Angle()` 仍保留为安全兜底，但正常路径不再依赖“先选解后 clamp”。
+
+2. `Inverse_Kinematics_From_Rotation_Matrix()` 已改为直接使用输入的 `Matrix3x3 R06`，去掉原先 `rotation matrix -> Euler -> rotation matrix` 的绕行。`Pose6D_t.hasR == false` 时仍由 `Pose_To_Vector_Rotation()` 使用 `A/B/C` 构造旋转矩阵。
+
+3. IK 内部已补充奇异点和数值保护：
+   - 输入 position / rotation 元素 finite 检查；
+   - `fabs(a2) < epsilon` 时直接无解；
+   - `sqrt()` 参数小负数归零，明显负数返回无解；
+   - 候选解含 NaN/Inf 时不加入解集。
+
+4. `Dummy_Motormatic_Build_Kinematic_Config()` 中保持现有 DH、motor limit、q2/q3 coupling limit 不变，仅对 1:1 映射且已有 motor 限位的 joint5 补充 `joint_limit`，q2/q3 仍优先通过 motor/coupling 约束筛选。
+
+5. 同批还修复了控制器稳定性问题：daemon 注册/离线回调保护、PID 浮点 `fabsf()` 与 dt 下限、UART 接收重启、Vision 发送失败释放 `tx_busy`、夹爪计数下溢、DJI 输出转换前限幅。
+
+6. 蓝牙接收协议已按实机输入调整为 6 轴关节角：`RX_BT_Data_s` 字段为 `joint1` ~ `joint6`，单位 deg；右拨杆上档接收到蓝牙有效帧后进入 `ARM_PC_MODE`，直接填充 `joint*_angle`，不再把蓝牙数据当末端 XYZ/RPY 走 `ARM_CARTESIAN_MODE` IK。
+
+后续若继续优化，建议再做：实机确认 DH/坐标方向与关节正方向、根据机械臂真实极限补全 `joint_limit[]`、再考虑函数重命名和配置结构拆分。

@@ -116,9 +116,10 @@ uint8_t Vision_Is_Online(void)
 
 void Vision_Send_Data(uint8_t* tx_data, uint16_t len)
 {
-    if(host_usart_instance && !host_usart_instance->tx_busy)
+    if(host_usart_instance && !host_usart_instance->tx_busy && tx_data != NULL && len > 0U)
     {
         host_usart_instance->tx_busy = true;
-        R_SCI_UART_Write(host_usart_instance->p_ctrl, tx_data, len);
+        if (R_SCI_UART_Write(host_usart_instance->p_ctrl, tx_data, len) != FSP_SUCCESS)
+            host_usart_instance->tx_busy = false;
     }
 }

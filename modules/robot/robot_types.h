@@ -9,8 +9,8 @@ typedef enum
 {
     ARM_ZERO_FORCE = 0,
     ARM_FREE_MODE,
-    ARM_PC_MODE,        // 上位机关节角模式
-    ARM_CARTESIAN_MODE  // 蓝牙自定义控制器末端位姿模式
+    ARM_PC_MODE,        // 上位机/蓝牙关节角模式
+    ARM_CARTESIAN_MODE  // 末端位姿 IK 模式
 } arm_mode_e;
 
 typedef enum

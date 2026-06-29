@@ -47,6 +47,8 @@ typedef struct {
     int count;
 } InverseKinematicsSolutions;
 
+static void Apply_Affine_Map(const AffineAngleMap_t *map, const Joint6D_t *input, Joint6D_t *output);
+
 static double Deg_To_Rad(double deg)
 {
     return deg * M_PI / 180.0;
@@ -64,6 +66,101 @@ static double Normalize_Angle(double angle)
     while (angle < -M_PI)
         angle += 2.0 * M_PI;
     return angle;
+}
+
+static bool Kinematic_Double_Is_Finite(double value)
+{
+    return isfinite(value) != 0;
+}
+
+static bool Kinematic_Float_Is_Finite(float value)
+{
+    return isfinite(value) != 0;
+}
+
+static bool Kinematic_Vector_Is_Finite(const Vector3 *position)
+{
+    return position != NULL &&
+           Kinematic_Double_Is_Finite(position->x) &&
+           Kinematic_Double_Is_Finite(position->y) &&
+           Kinematic_Double_Is_Finite(position->z);
+}
+
+static bool Kinematic_Rotation_Is_Finite(const Matrix3x3 *rotation)
+{
+    if (rotation == NULL)
+        return false;
+
+    for (uint8_t r = 0; r < 3U; r++)
+    {
+        for (uint8_t c = 0; c < 3U; c++)
+        {
+            if (!Kinematic_Double_Is_Finite(rotation->m[r][c]))
+                return false;
+        }
+    }
+    return true;
+}
+
+static bool Kinematic_Safe_Sqrt(double value, double *result)
+{
+    const double eps = 1e-9;
+
+    if (result == NULL || !Kinematic_Double_Is_Finite(value))
+        return false;
+    if (value < -eps)
+        return false;
+    if (value < 0.0)
+        value = 0.0;
+
+    *result = sqrt(value);
+    return Kinematic_Double_Is_Finite(*result);
+}
+
+static bool Kinematic_Is_Angle_In_Limit(float angle_deg, const AngleLimit_t *limit)
+{
+    const float eps = 1e-4f;
+
+    if (!Kinematic_Float_Is_Finite(angle_deg))
+        return false;
+    if (limit == NULL || !limit->enable)
+        return true;
+    return angle_deg >= (limit->min_deg - eps) && angle_deg <= (limit->max_deg + eps);
+}
+
+static bool Kinematic_Is_Motor_In_Limits(const ArmConfig_t *config, const Joint6D_t *motor_joint_deg)
+{
+    if (config == NULL || motor_joint_deg == NULL)
+        return false;
+
+    for (uint8_t i = 0U; i < 6U; i++)
+    {
+        if (!Kinematic_Is_Angle_In_Limit(motor_joint_deg->a[i], &config->motor_limit[i]))
+            return false;
+    }
+    return true;
+}
+
+static bool Kinematic_Is_Coupling_In_Limits(const ArmConfig_t *config, const Joint6D_t *motor_joint_deg)
+{
+    const float eps = 1e-4f;
+
+    if (config == NULL || motor_joint_deg == NULL)
+        return false;
+
+    for (uint8_t i = 0U; i < config->coupling_limit_count && i < 4U; i++)
+    {
+        const MotorCouplingLimit_t *limit = &config->coupling_limits[i];
+        if (!limit->enable || limit->lhs_motor_index >= 6U || limit->rhs_motor_index >= 6U)
+            continue;
+
+        float delta = motor_joint_deg->a[limit->lhs_motor_index] - motor_joint_deg->a[limit->rhs_motor_index];
+        if (!Kinematic_Float_Is_Finite(delta) ||
+            delta < (limit->min_delta_deg - eps) ||
+            delta > (limit->max_delta_deg + eps))
+            return false;
+    }
+    return true;
 }
 
 static Matrix4x4 Identity_Matrix4x4(void)
@@ -94,24 +191,6 @@ static Matrix4x4 Matrix4x4_Multiply(const Matrix4x4 *A, const Matrix4x4 *B)
         }
     }
     return C;
-}
-
-static Matrix4x4 Transform_From_Rotation_And_Position(const Matrix3x3 *R, const Vector3 *p)
-{
-    Matrix4x4 T = Identity_Matrix4x4();
-
-    for (int i = 0; i < 3; i++)
-    {
-        for (int j = 0; j < 3; j++)
-        {
-            T.m[i][j] = R->m[i][j];
-        }
-    }
-
-    T.m[0][3] = p->x;
-    T.m[1][3] = p->y;
-    T.m[2][3] = p->z;
-    return T;
 }
 
 static Matrix3x3 Euler_To_Rotation_Matrix(double roll, double pitch, double yaw)
@@ -156,15 +235,6 @@ static EulerAngles Rotation_Matrix_To_Euler(const Matrix3x3 *R)
         euler.yaw = 0.0;
     }
     return euler;
-}
-
-static EndEffectorState Create_End_Effector_State(const Vector3 *position, const EulerAngles *orientation)
-{
-    EndEffectorState state;
-    state.position = *position;
-    state.rotation = Euler_To_Rotation_Matrix(orientation->roll, orientation->pitch, orientation->yaw);
-    state.transform = Transform_From_Rotation_And_Position(&state.rotation, position);
-    return state;
 }
 
 static Matrix4x4 DH_Transform(double theta, double d, double a, double alpha)
@@ -230,18 +300,62 @@ static EndEffectorState Forward_Kinematics(const JointAngles *angles, const DHPa
     return state;
 }
 
-static InverseKinematicsSolutions Inverse_Kinematics_From_Pose(const Vector3 *position,
-                                                               const EulerAngles *orientation,
-                                                               const DHParameters *dh,
-                                                               int *flag_beyond_180,
-                                                               bool enable_q3_patch)
+static bool Kinematic_Add_IK_Solution(InverseKinematicsSolutions *solutions,
+                                      double q1,
+                                      double q2,
+                                      double q3,
+                                      double q4,
+                                      double q5,
+                                      double q6,
+                                      int *flag_beyond_180,
+                                      bool enable_q3_patch,
+                                      bool wrist_flip)
+{
+    double values[6] = {q1, q2, q3, q4, q5, q6};
+    for (uint8_t i = 0; i < 6U; i++)
+    {
+        if (!Kinematic_Double_Is_Finite(values[i]))
+            return false;
+    }
+
+    if (solutions == NULL || solutions->count >= 8)
+        return false;
+
+    double q3_tmp = Normalize_Angle(q3);
+    if (enable_q3_patch && flag_beyond_180 != NULL)
+    {
+        if (q3_tmp * 180.0 / M_PI > 160.0)
+            *flag_beyond_180 = 1;
+        else if (q3_tmp * 180.0 / M_PI < 160.0 && q3_tmp > 0.0)
+            *flag_beyond_180 = 0;
+        if (*flag_beyond_180 && q3_tmp * 180.0 / M_PI < 0.0)
+            q3_tmp = 2.0 * M_PI + q3_tmp;
+    }
+
+    JointAngles *sol = &solutions->angles[solutions->count];
+    sol->theta[0] = Normalize_Angle(q1);
+    sol->theta[1] = Normalize_Angle(q2);
+    sol->theta[2] = q3_tmp;
+    sol->theta[3] = Normalize_Angle(wrist_flip ? q4 + M_PI : q4);
+    sol->theta[4] = Normalize_Angle(wrist_flip ? -q5 : q5);
+    sol->theta[5] = Normalize_Angle(wrist_flip ? q6 + M_PI : q6);
+    solutions->count++;
+    return true;
+}
+
+static InverseKinematicsSolutions Inverse_Kinematics_From_Rotation_Matrix(const Vector3 *position,
+                                                                          const Matrix3x3 *rotation,
+                                                                          const DHParameters *dh,
+                                                                          int *flag_beyond_180,
+                                                                          bool enable_q3_patch)
 {
     InverseKinematicsSolutions solutions;
     solutions.count = 0;
 
-    EndEffectorState desired_state = Create_End_Effector_State(position, orientation);
-    Matrix3x3 R06 = desired_state.rotation;
+    if (!Kinematic_Vector_Is_Finite(position) || !Kinematic_Rotation_Is_Finite(rotation) || dh == NULL)
+        return solutions;
 
+    Matrix3x3 R06 = *rotation;
     double ax = R06.m[0][2];
     double ay = R06.m[1][2];
     double az = R06.m[2][2];
@@ -253,53 +367,48 @@ static InverseKinematicsSolutions Inverse_Kinematics_From_Pose(const Vector3 *po
     double ny = R06.m[1][0];
     double nz = R06.m[2][0];
 
-    double px = desired_state.position.x - dh->d[5] * ax;
-    double py = desired_state.position.y - dh->d[5] * ay;
-    double pz = desired_state.position.z - dh->d[5] * az;
-
-    double temp = px * px + py * py - d2 * d2;
-    if (temp < 0.0)
+    if (fabs(a2) < 1e-9 || !Kinematic_Double_Is_Finite(a2))
         return solutions;
 
-    double theta1_1 = atan2(py, px) - atan2(d2, sqrt(temp));
-    double theta1_2 = atan2(py, px) - atan2(d2, -sqrt(temp));
+    double px = position->x - dh->d[5] * ax;
+    double py = position->y - dh->d[5] * ay;
+    double pz = position->z - dh->d[5] * az;
 
-    double q1 = 0.0;
-    double q2 = 0.0;
-    double q3 = 0.0;
-    double q4 = 0.0;
-    double q5 = 0.0;
-    double q6 = 0.0;
-    double q23 = 0.0;
+    double temp = px * px + py * py - d2 * d2;
+    double sqrt_temp = 0.0;
+    if (!Kinematic_Safe_Sqrt(temp, &sqrt_temp))
+        return solutions;
+
+    double theta1_1 = atan2(py, px) - atan2(d2, sqrt_temp);
+    double theta1_2 = atan2(py, px) - atan2(d2, -sqrt_temp);
 
     for (int i1 = 0; i1 < 2; i1++)
     {
-        q1 = (i1 == 0) ? theta1_1 : theta1_2;
+        double q1 = (i1 == 0) ? theta1_1 : theta1_2;
 
         double k = (px * px + py * py + pz * pz - a2 * a2 - a3 * a3 - d2 * d2 - d4 * d4) /
                    (2.0 * a2);
 
         temp = a3 * a3 + d4 * d4 - k * k;
-        if (temp < 0.0)
+        if (!Kinematic_Safe_Sqrt(temp, &sqrt_temp))
             continue;
 
         for (int i3 = 0; i3 < 2; i3++)
         {
-            if (i3 == 0)
-                q3 = atan2(a3, d4) - atan2(k, sqrt(temp));
-            else
-                q3 = atan2(a3, d4) - atan2(k, -sqrt(temp));
+            double q3 = (i3 == 0) ?
+                            atan2(a3, d4) - atan2(k, sqrt_temp) :
+                            atan2(a3, d4) - atan2(k, -sqrt_temp);
 
-            q23 = atan2(-(a3 + a2 * cos(q3)) * pz + (cos(q1) * px + sin(q1) * py) * (a2 * sin(q3) - d4),
-                        (a2 * sin(q3) - d4) * pz + (cos(q1) * px + sin(q1) * py) * (a2 * cos(q3) + a3));
-            q2 = q23 - q3;
+            double q23 = atan2(-(a3 + a2 * cos(q3)) * pz + (cos(q1) * px + sin(q1) * py) * (a2 * sin(q3) - d4),
+                               (a2 * sin(q3) - d4) * pz + (cos(q1) * px + sin(q1) * py) * (a2 * cos(q3) + a3));
+            double q2 = q23 - q3;
             if (q3 < 0.0)
                 q2 += M_PI / 2.0;
             else if (q3 > 0.0)
                 q2 -= M_PI * 3.0 / 2.0;
 
-            q4 = atan2(-ax * sin(q1) + ay * cos(q1),
-                       -ax * cos(q1) * cos(q23) - ay * sin(q1) * cos(q23) + az * sin(q23));
+            double q4 = atan2(-ax * sin(q1) + ay * cos(q1),
+                              -ax * cos(q1) * cos(q23) - ay * sin(q1) * cos(q23) + az * sin(q23));
 
             double s5 = -(ax * (cos(q1) * cos(q23) * cos(q4) + sin(q1) * sin(q4)) +
                           ay * (sin(q1) * cos(q23) * cos(q4) - cos(q1) * sin(q4)) -
@@ -309,7 +418,7 @@ static InverseKinematicsSolutions Inverse_Kinematics_From_Pose(const Vector3 *po
                         ay * (-sin(q1) * sin(q23)) +
                         az * (-cos(q23));
 
-            q5 = atan2(s5, c5);
+            double q5 = atan2(s5, c5);
 
             double s6 = -nx * (cos(q1) * cos(q23) * sin(q4) - sin(q1) * cos(q4)) -
                         ny * (sin(q1) * cos(q23) * sin(q4) + cos(q1) * cos(q4)) +
@@ -321,57 +430,16 @@ static InverseKinematicsSolutions Inverse_Kinematics_From_Pose(const Vector3 *po
                               sin(q1) * sin(q23) * sin(q5)) -
                         nz * (sin(q23) * cos(q4) * cos(q5) + cos(q23) * sin(q5));
 
-            q6 = atan2(s6, c6);
+            double q6 = atan2(s6, c6);
 
-            if (solutions.count < 8)
-            {
-                double q3_tmp = Normalize_Angle(q3);
-                if (enable_q3_patch && flag_beyond_180 != NULL)
-                {
-                    if (q3_tmp * 180.0 / M_PI > 160.0)
-                        *flag_beyond_180 = 1;
-                    else if (q3_tmp * 180.0 / M_PI < 160.0 && q3_tmp > 0.0)
-                        *flag_beyond_180 = 0;
-                    if (*flag_beyond_180 && q3_tmp * 180.0 / M_PI < 0.0)
-                        q3_tmp = 2.0 * M_PI + q3_tmp;
-                }
-
-                JointAngles *sol = &solutions.angles[solutions.count];
-                sol->theta[0] = Normalize_Angle(q1);
-                sol->theta[1] = Normalize_Angle(q2);
-                sol->theta[2] = q3_tmp;
-                sol->theta[3] = Normalize_Angle(q4);
-                sol->theta[4] = Normalize_Angle(q5);
-                sol->theta[5] = Normalize_Angle(q6);
-                solutions.count++;
-
-                if (solutions.count < 8)
-                {
-                    sol = &solutions.angles[solutions.count];
-                    sol->theta[0] = Normalize_Angle(q1);
-                    sol->theta[1] = Normalize_Angle(q2);
-                    sol->theta[2] = q3_tmp;
-                    sol->theta[3] = Normalize_Angle(q4 + M_PI);
-                    sol->theta[4] = Normalize_Angle(-q5);
-                    sol->theta[5] = Normalize_Angle(q6 + M_PI);
-                    solutions.count++;
-                }
-            }
+            Kinematic_Add_IK_Solution(&solutions, q1, q2, q3, q4, q5, q6,
+                                      flag_beyond_180, enable_q3_patch, false);
+            Kinematic_Add_IK_Solution(&solutions, q1, q2, q3, q4, q5, q6,
+                                      flag_beyond_180, enable_q3_patch, true);
         }
     }
 
     return solutions;
-}
-
-static InverseKinematicsSolutions Inverse_Kinematics_From_Rotation_Matrix(const Vector3 *position,
-                                                                          const Matrix3x3 *rotation,
-                                                                          const DHParameters *dh,
-                                                                          int *flag_beyond_180,
-                                                                          bool enable_q3_patch)
-{
-    (void)Transform_From_Rotation_And_Position(rotation, position);
-    EulerAngles orientation = Rotation_Matrix_To_Euler(rotation);
-    return Inverse_Kinematics_From_Pose(position, &orientation, dh, flag_beyond_180, enable_q3_patch);
 }
 
 static void Fit_Angle_Solution(JointAngles *solution, const JointAngles *reference)
@@ -583,7 +651,7 @@ bool Kinematic_ControllerGravityCompensation(const DOF6Kinematic_Handle_t *handl
     float target_1based[4] = {0.0f, target[0], target[1], target[2]};
     float phi[4] = {0.0f, 0.0f, 2.0f * (float)M_PI / 3.0f, 4.0f * (float)M_PI / 3.0f};
     float gravity[4] = {0.0f, -13.0f, 0.0f, 0.0f};
-    float Jacobi[4][4] = {0.0f};
+    float Jacobi[4][4] = {{0.0f}};
 
     float R1[4][4] = {
         {0.0f, 0.0f, 0.0f, 0.0f},
@@ -648,16 +716,16 @@ bool Kinematic_ControllerGravityCompensation(const DOF6Kinematic_Handle_t *handl
     };
 
     float S_det = 0.0f;
-    float S_T_inv[4][4] = {0.0f};
+    float S_T_inv[4][4] = {{0.0f}};
     if (Matrix_3x3_Det(S_T, &S_det))
     {
-        float Jacobi_temp[4][4] = {0.0f};
+        float Jacobi_temp[4][4] = {{0.0f}};
         Matrix_3x3_Inv(S_T, S_det, S_T_inv);
         Matrix_3_Cross_Product_3(S_T_inv, Sb, Jacobi_temp);
         Matrix_3x3_Take_Negative(Jacobi_temp, Jacobi);
     }
 
-    float Jacobo_T[4][4] = {0.0f};
+    float Jacobo_T[4][4] = {{0.0f}};
     float torque_1based[4] = {0.0f};
     Matrix_T_3x3(Jacobi, Jacobo_T);
     Matrix_3x3_Cross_Product_3x1(Jacobo_T, gravity, torque_1based);
@@ -910,6 +978,28 @@ static void IKSolves_To_Internal(const IKSolves_t *solves, InverseKinematicsSolu
     }
 }
 
+static bool Kinematic_Is_Candidate_In_Limits(const DOF6Kinematic_Handle_t *handle, const JointAngles *candidate)
+{
+    if (handle == NULL || candidate == NULL)
+        return false;
+
+    Joint6D_t ik_joint_deg;
+    Joint6D_t motor_joint_deg;
+    for (uint8_t j = 0U; j < 6U; j++)
+    {
+        if (!Kinematic_Double_Is_Finite(candidate->theta[j]))
+            return false;
+
+        ik_joint_deg.a[j] = (float)Rad_To_Deg(candidate->theta[j]);
+        if (!Kinematic_Is_Angle_In_Limit(ik_joint_deg.a[j], &handle->config.joint_limit[j]))
+            return false;
+    }
+
+    Apply_Affine_Map(&handle->config.joint_to_motor, &ik_joint_deg, &motor_joint_deg);
+    return Kinematic_Is_Motor_In_Limits(&handle->config, &motor_joint_deg) &&
+           Kinematic_Is_Coupling_In_Limits(&handle->config, &motor_joint_deg);
+}
+
 int Kinematic_Select_Best_Sol(const DOF6Kinematic_Handle_t *handle,
                               const IKSolves_t *solves,
                               const Joint6D_t *current_joints)
@@ -932,6 +1022,9 @@ int Kinematic_Select_Best_Sol(const DOF6Kinematic_Handle_t *handle,
 
     for (int i = 0; i < internal.count; i++)
     {
+        if (!Kinematic_Is_Candidate_In_Limits(handle, &internal.angles[i]))
+            continue;
+
         double cost = 0.0;
         for (int j = 0; j < 6; j++)
         {
