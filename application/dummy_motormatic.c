@@ -14,7 +14,6 @@ static Pose6D_t current_pose;
 static Pose6D_t target_pose;
 static Joint6D_t last_valid_joint_cmd = {{0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}};
 static Joint6D_t last_valid_ik_joint_deg = {{0.0f, 75.0f, 105.0f, 0.0f, 0.0f, 0.0f}};
-static int best_sol_index = -1;
 static bool is_pose_initialized = false;
 
 static Publisher_t *dummy_motormatic_pub;
@@ -146,8 +145,8 @@ static void Controller_Motor_Register(void)
     };
 
     q1_rs_motor = RSMotorInit(&q1_rs_config);
-    q2_dji_motor = DJIMotorInit(&q2_6020_config);
     q3_dji_motor = DJIMotorInit(&q3_6020_config);
+    q2_dji_motor = DJIMotorInit(&q2_6020_config);
 
     if (q1_rs_motor != NULL)
         RSMotorCaliEncoder(q1_rs_motor);
@@ -199,6 +198,29 @@ static void Dummy_Motormatic_Apply_Controller_Torque(const float torque[3])
         DJIMotorSetRef(q3_dji_motor, torque[2] * 5461.333f * 1000.0f * 1.1f / 741.0f);
 }
 
+static void Fill_Controller_Feedback(void)
+{
+    dummy_feed_data.controller_motor_angle[0] = (q1_rs_motor != NULL) ?
+                                                    q1_rs_motor->measure.position * KINEMATIC_RAD_TO_DEG :
+                                                    0.0f;
+    dummy_feed_data.controller_motor_angle[1] = (q2_dji_motor != NULL) ?
+                                                    q2_dji_motor->measure.total_angle :
+                                                    0.0f;
+    dummy_feed_data.controller_motor_angle[2] = (q3_dji_motor != NULL) ?
+                                                    q3_dji_motor->measure.total_angle :
+                                                    0.0f;
+
+    dummy_feed_data.imu_euler[0] = (imu_delta != NULL) ? imu_delta->IMU_Driver_Data.roll : 0.0f;
+    dummy_feed_data.imu_euler[1] = (imu_delta != NULL) ? imu_delta->IMU_Driver_Data.pitch : 0.0f;
+    dummy_feed_data.imu_euler[2] = (imu_delta != NULL) ? imu_delta->IMU_Driver_Data.yaw : 0.0f;
+
+    dummy_feed_data.joint_motor[0].is_online = (q1_rs_motor != NULL && q1_rs_motor->daemon != NULL) ?
+                                                   DaemonIsOnline(q1_rs_motor->daemon) :
+                                                   0U;
+    dummy_feed_data.joint_motor[1].is_online = DJIMotorIsOnline(q2_dji_motor);
+    dummy_feed_data.joint_motor[2].is_online = DJIMotorIsOnline(q3_dji_motor);
+}
+
 static void Fill_Common_Feedback(arm_state_e state)
 {
     dummy_feed_data.current_mode = dummy_cmd_data.arm_mode;
@@ -212,6 +234,8 @@ static void Fill_Common_Feedback(arm_state_e state)
     dummy_feed_data.cur_roll = current_pose.A;
     dummy_feed_data.cur_pitch = current_pose.B;
     dummy_feed_data.cur_yaw = current_pose.C;
+
+    Fill_Controller_Feedback();
 }
 
 static void Fill_Joint_Feedback(const Joint6D_t *joint_cmd, uint8_t is_finished)
@@ -229,25 +253,25 @@ static void Fill_Joint_Feedback(const Joint6D_t *joint_cmd, uint8_t is_finished)
     dummy_feed_data.joint_motor[6].reduction_angle = 0.0f;
     dummy_feed_data.joint_motor[6].is_finished = 1U;
     dummy_feed_data.joint_motor[6].is_online = 0U;
+    Fill_Controller_Feedback();
 }
 
-static bool Solve_IK_And_Fill_Feedback(const Pose6D_t *pose)
+static void Fill_Pose_Only_Feedback(arm_state_e state)
 {
-    bool ik_ok = Kinematic_SolveIK_To_Motor(&kinematic_handle,
-                                            pose,
-                                            &last_valid_ik_joint_deg,
-                                            &last_valid_joint_cmd,
-                                            &best_sol_index);
-    if (ik_ok)
+    Fill_Common_Feedback(state);
+
+    for (uint8_t i = 0; i < 7U; i++)
     {
-        Fill_Joint_Feedback(&last_valid_joint_cmd, 1U);
-        Fill_Common_Feedback(ARM_STATUS_MOVING);
-        return true;
+        /* In pose-output modes the arm body should consume cur_x/cur_y/cur_z
+           and cur_roll/cur_pitch/cur_yaw, then run its own IK. */
+        dummy_feed_data.joint_motor[i].velocity = 0.0f;
+        dummy_feed_data.joint_motor[i].current = 0.0f;
+        dummy_feed_data.joint_motor[i].temperature = 0.0f;
+        dummy_feed_data.joint_motor[i].is_online = 0U;
+        dummy_feed_data.joint_motor[i].is_finished = 1U;
     }
 
-    Fill_Joint_Feedback(&last_valid_joint_cmd, 0U);
-    Fill_Common_Feedback(ARM_STATUS_ERROR);
-    return false;
+    Fill_Controller_Feedback();
 }
 
 static void Fill_Direct_Joint_Output(void)
@@ -434,12 +458,11 @@ void Dummy_Motormatic_Task(void)
         {
             current_pose = target_pose;
             Dummy_Motormatic_Apply_Controller_Torque(controller_torque);
-            (void)Solve_IK_And_Fill_Feedback(&target_pose);
+            Fill_Pose_Only_Feedback(ARM_STATUS_MOVING);
         }
         else
         {
-            Fill_Joint_Feedback(&last_valid_joint_cmd, 0U);
-            Fill_Common_Feedback(ARM_STATUS_ERROR);
+            Fill_Pose_Only_Feedback(ARM_STATUS_ERROR);
         }
     }
     else if (dummy_cmd_data.arm_mode == ARM_CARTESIAN_MODE)
@@ -453,7 +476,7 @@ void Dummy_Motormatic_Task(void)
                              dummy_cmd_data.target_yaw,
                              &target_pose);
         current_pose = target_pose;
-        (void)Solve_IK_And_Fill_Feedback(&target_pose);
+        Fill_Pose_Only_Feedback(ARM_STATUS_MOVING);
     }
     else if (dummy_cmd_data.arm_mode == ARM_PC_MODE)
     {

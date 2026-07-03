@@ -340,7 +340,7 @@
               <MiscControls>@./via/rasc_armclang.via</MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>..\keil_test;.\ra;.\ra_cfg;.\ra_gen;.\bsp;.\bsp\dwt;.\bsp\can;.\bsp\uart;.\bsp\gpio;.\bsp\usb;.\modules;.\modules\controller;.\modules\daemon;.\modules\message_center;.\modules\remote;.\modules\dummy_kinematic;.\modules\vision;.\modules\wifi;.\modules\bluetooth;.\modules\robot;.\modules\motor;.\modules\motor\step_motor;.\modules\motor\DJImotor;.\modules\motor\RSmotor;.\modules\imu;.\modules\imu\DM_IMU;.\modules\imu\ex_imu;.\application;.\src</IncludePath>
+              <IncludePath>..\keil_test;.\ra;.\ra_cfg;.\ra_gen;.\bsp;.\bsp\dwt;.\bsp\can;.\bsp\uart;.\bsp\gpio;.\bsp\usb;.\modules;.\modules\controller;.\modules\daemon;.\modules\message_center;.\modules\dummy_kinematic;.\modules\vision;.\modules\wifi;.\modules\bluetooth;.\modules\serial_debug;.\modules\robot;.\modules\motor;.\modules\motor\step_motor;.\modules\motor\DJImotor;.\modules\motor\RSmotor;.\modules\imu;.\modules\imu\DM_IMU;.\modules\imu\ex_imu;.\application;.\src</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -500,26 +500,6 @@
               <FilePath>.\modules\message_center\message_center.h</FilePath>
             </File>
             <File>
-              <FileName>mc6c.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\modules\remote\mc6c.c</FilePath>
-            </File>
-            <File>
-              <FileName>mc6c.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\modules\remote\mc6c.h</FilePath>
-            </File>
-            <File>
-              <FileName>flysky.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\modules\remote\flysky.c</FilePath>
-            </File>
-            <File>
-              <FileName>flysky.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\modules\remote\flysky.h</FilePath>
-            </File>
-            <File>
               <FileName>dummy_kinematic_v2.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\modules\dummy_kinematic\dummy_kinematic_v2.c</FilePath>
@@ -558,6 +538,16 @@
               <FileName>bluetooth.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\modules\bluetooth\bluetooth.h</FilePath>
+            </File>
+            <File>
+              <FileName>serial_debug.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\modules\serial_debug\serial_debug.c</FilePath>
+            </File>
+            <File>
+              <FileName>serial_debug.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\modules\serial_debug\serial_debug.h</FilePath>
             </File>
             <File>
               <FileName>robot_types.h</FileName>

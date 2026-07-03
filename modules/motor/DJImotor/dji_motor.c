@@ -7,6 +7,7 @@ static uint8_t idx = 0;
 static DJIMotorInstance *dji_motor_instance[DJI_MOTOR_CNT] = {NULL};
 static CANInstance sender_assignment[3];
 static uint8_t sender_enable_flag[3] = {0};
+static uint32_t last_init_error = 0U;
 
 static float DJIMotor_Limit_Output(const DJIMotorInstance *motor, float output)
 {
@@ -65,6 +66,7 @@ static void MotorSenderGrouping(DJIMotorInstance *motor, CAN_Init_Config_s *conf
         break;
     }
 
+    motor->expected_rx_id = config->rx_id;
     sender_enable_flag[motor_grouping] = 1U;
     motor->message_num = motor_send_num;
     motor->sender_group = motor_grouping;
@@ -76,12 +78,16 @@ static void DecodeDJIMotor(CANInstance *_instance)
     DJIMotorInstance *motor = (DJIMotorInstance *)_instance->id;
     if (motor == NULL)
         return;
+    if (_instance->current_rx_id != motor->expected_rx_id)
+        return;
 
     DJI_Motor_Measure_s *measure = &motor->measure;
 
     if (motor->daemon != NULL)
         DaemonReload(motor->daemon);
     motor->dt = DWT_GetDeltaT(&motor->feed_cnt);
+    motor->recv_count++;
+    motor->last_rx_id = _instance->current_rx_id;
 
     measure->last_ecd = measure->ecd;
     measure->ecd = ((uint16_t)rxbuff[0]) << 8 | rxbuff[1];
@@ -108,12 +114,20 @@ static void DJIMotorLostCallback(void *motor_ptr)
 
 DJIMotorInstance *DJIMotorInit(Motor_Init_Config_s *config)
 {
+    last_init_error = 0U;
+
     if (config == NULL || idx >= DJI_MOTOR_CNT)
+    {
+        last_init_error = 1U;
         return NULL;
+    }
 
     DJIMotorInstance *instance = (DJIMotorInstance *)malloc(sizeof(DJIMotorInstance));
     if (instance == NULL)
+    {
+        last_init_error = 2U;
         return NULL;
+    }
     memset(instance, 0, sizeof(DJIMotorInstance));
 
     instance->motor_type = config->motor_type;
@@ -131,9 +145,11 @@ DJIMotorInstance *DJIMotorInit(Motor_Init_Config_s *config)
 
     config->can_init_config.can_module_callback = DecodeDJIMotor;
     config->can_init_config.id = instance;
+    config->can_init_config.rx_id = 0U;
     instance->motor_can_instance = CANRegister(&config->can_init_config);
     if (instance->motor_can_instance == NULL)
     {
+        last_init_error = 3U;
         free(instance);
         return NULL;
     }
@@ -203,6 +219,39 @@ void DJIMotorSetRef(DJIMotorInstance *motor, float ref)
     if (motor == NULL)
         return;
     motor->motor_controller.pid_ref = ref;
+}
+
+uint8_t DJIMotorIsOnline(DJIMotorInstance *motor)
+{
+    if (motor == NULL || motor->daemon == NULL)
+        return 0U;
+    return DaemonIsOnline(motor->daemon);
+}
+
+uint32_t DJIMotorGetExpectedRxId(DJIMotorInstance *motor)
+{
+    if (motor == NULL)
+        return 0U;
+    return motor->expected_rx_id;
+}
+
+uint32_t DJIMotorGetLastRxId(DJIMotorInstance *motor)
+{
+    if (motor == NULL)
+        return 0U;
+    return motor->last_rx_id;
+}
+
+uint32_t DJIMotorGetRxCount(DJIMotorInstance *motor)
+{
+    if (motor == NULL)
+        return 0U;
+    return motor->recv_count;
+}
+
+uint32_t DJIMotorGetLastInitError(void)
+{
+    return last_init_error;
 }
 
 void DJIMotorControl(void)

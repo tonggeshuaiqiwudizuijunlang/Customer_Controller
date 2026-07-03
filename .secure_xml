@@ -72,9 +72,6 @@
       <configSetting altId="p108.gpio_mode.gpio_mode_peripheral" configurationId="p108.gpio_mode"/>
       <configSetting altId="p114.output.high" configurationId="p114"/>
       <configSetting altId="p114.gpio_mode.gpio_mode_out.high" configurationId="p114.gpio_mode"/>
-      <configSetting altId="p202.gpio_speed.gpio_speed_high" configurationId="p202.gpio_drivecapacity"/>
-      <configSetting altId="p202.gpio_mode.gpio_mode_peripheral" configurationId="p202.gpio_mode"/>
-      <configSetting altId="p203.gpio_mode.gpio_mode_peripheral" configurationId="p203.gpio_mode"/>
       <configSetting altId="p300.gpio_mode.gpio_mode_peripheral" configurationId="p300.gpio_mode"/>
       <configSetting altId="p400.output.high" configurationId="p400"/>
       <configSetting altId="p400.gpio_mode.gpio_mode_out.high" configurationId="p400.gpio_mode"/>
@@ -95,8 +92,6 @@
       <configSetting altId="sci5.txd.p501" configurationId="sci5.txd" isUsedByDriver="true" peripheral="SCI5"/>
       <configSetting altId="sci6.rxd.p505" configurationId="sci6.rxd" isUsedByDriver="true" peripheral="SCI6"/>
       <configSetting altId="sci6.txd.p506" configurationId="sci6.txd" isUsedByDriver="true" peripheral="SCI6"/>
-      <configSetting altId="sci9.rxd.p202" configurationId="sci9.rxd" isUsedByDriver="true" peripheral="SCI9"/>
-      <configSetting altId="sci9.txd.p203" configurationId="sci9.txd" isUsedByDriver="true" peripheral="SCI9"/>
       <configSetting altId="usbfs0.vbus.p407" configurationId="usbfs0.vbus" isUsedByDriver="true" peripheral="USB_FS0"/>
     </pincfg>
   </raPinConfiguration>

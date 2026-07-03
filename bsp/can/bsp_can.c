@@ -1,7 +1,6 @@
 #include "bsp_can.h"
 
 #define CAN_MX_REGISTER_CNT 16
-
 static CANInstance *can0_instance = NULL;
 static CANInstance *can_instance[CAN_MX_REGISTER_CNT] = {NULL};
 static uint8_t can_idx = 0;
@@ -70,6 +69,7 @@ CANInstance *CANRegister(CAN_Init_Config_s *config)
 {
     return BSP_CAN_Init(config);
 }
+
 /**
  * @brief 设置 DLC
  */
@@ -109,6 +109,7 @@ void can_callback(can_callback_args_t *p_args)
                 instance->can_module_callback(instance);
             }
         }
+
     }
 }
 

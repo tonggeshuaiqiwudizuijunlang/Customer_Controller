@@ -50,6 +50,7 @@ typedef struct
     Dji_MODE dji_mode;
 
     CANInstance *motor_can_instance;
+    uint32_t expected_rx_id;
     uint8_t sender_group;
     uint8_t message_num;
 
@@ -58,6 +59,8 @@ typedef struct
 
     DaemonInstance *daemon;
     uint32_t feed_cnt;
+    uint32_t recv_count;
+    uint32_t last_rx_id;
     float dt;
 } DJIMotorInstance;
 
@@ -69,5 +72,10 @@ void DJIMotorStop(DJIMotorInstance *motor);
 void DJIMotorEnable(DJIMotorInstance *motor);
 void DJIMotorOuterLoop(DJIMotorInstance *motor, Closeloop_Type_e outer_loop);
 void DJiMotorSetMode(DJIMotorInstance *motor, Dji_MODE mode);
+uint8_t DJIMotorIsOnline(DJIMotorInstance *motor);
+uint32_t DJIMotorGetExpectedRxId(DJIMotorInstance *motor);
+uint32_t DJIMotorGetLastRxId(DJIMotorInstance *motor);
+uint32_t DJIMotorGetRxCount(DJIMotorInstance *motor);
+uint32_t DJIMotorGetLastInitError(void);
 
 #endif // DJI_MOTOR_H

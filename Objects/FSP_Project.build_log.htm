@@ -22,161 +22,22 @@ Dialog DLL:      TCM.DLL V1.56.6.0
  
 <h2>Project:</h2>
 c:\Users\Xiong Sir\Desktop\Customer_Controller\FSP_Project.uvprojx
-Project File Date:  06/23/2026
+Project File Date:  07/02/2026
 
 <h2>Output:</h2>
 *** Using Compiler 'V6.23', folder: 'D:\keil5 c51+stm32\ARM\PACK\ARM\ARMCLANG\Bin'
 Build target 'Target_1'
 Before Build - User command #1: cmd /c ""c:\Users\Xiong Sir\Desktop\Customer_Controller\rasc_launcher.bat" "c:\Users\Xiong Sir\Desktop\Customer_Controller\rasc_version.txt" -nosplash --launcher.suppressErrors --generate --compiler ARMv6 --devicefamily ra "c:\Users\Xiong Sir\Desktop\Customer_Controller\configuration.xml" 2> "%TEMP%\rasc_stderr.out" && echo. > "c:\Users\Xiong Sir\Desktop\Customer_Controller\output.rasc""
 [INFO] Input file "c:\Users\Xiong Sir\Desktop\Customer_Controller\configuration.xml" is older than output file "c:\Users\Xiong Sir\Desktop\Customer_Controller\output.rasc". Skipping RASC invocation.
-compiling bsp_gpio.c...
-compiling r_usb_pcdc_descriptor.c...
-compiling motor_ctrl_task_entry.c...
-compiling bsp_usb.c...
-compiling hal_warmstart.c...
-compiling daemon_task_entry.c...
-compiling bsp_dwt.c...
-compiling bsp_uart.c...
-compiling bsp_can.c...
 compiling robot_task_entry.c...
-compiling controller.c...
-compiling wifi.c...
-compiling message_center.c...
-compiling vision.c...
-compiling daemon.c...
-compiling flysky.c...
-compiling mc6c.c...
-compiling step_motor.c...
-modules/motor/RSmotor/rs_motor.c(79): warning: implicit conversion loses floating-point precision: 'double' to 'float' [-Wimplicit-float-conversion]
-   79 |     DWT_Delay(0.1);
-      |     ~~~~~~~~~ ^~~
-modules/motor/RSmotor/rs_motor.c(150): warning: implicit conversion loses floating-point precision: 'double' to 'float' [-Wimplicit-float-conversion]
-  150 |     DWT_Delay(0.1);
-      |     ~~~~~~~~~ ^~~
-modules/motor/RSmotor/rs_motor.c(277): warning: implicit conversion loses integer precision: 'int' to 'uint8_t' (aka 'unsigned char') [-Wimplicit-int-conversion]
-  277 |     tx_buff[3] = ((velocity_uint & 0x0F) << 4) | ((kp_uint >> 8) & 0x0F);
-      |                ~ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~
-modules/motor/RSmotor/rs_motor.c(280): warning: implicit conversion loses integer precision: 'int' to 'uint8_t' (aka 'unsigned char') [-Wimplicit-int-conversion]
-  280 |     tx_buff[6] = ((kd_uint & 0x0F) << 4) | ((torque_uint >> 8) & 0x0F);
-      |                ~ ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-4 warnings generated.
-compiling rs_motor.c...
-compiling bluetooth.c...
-modules/motor/DJImotor/dji_motor.c(87): warning: implicit conversion loses integer precision: 'int' to 'uint16_t' (aka 'unsigned short') [-Wimplicit-int-conversion]
-   87 |     measure->ecd = ((uint16_t)rxbuff[0]) << 8 | rxbuff[1];
-      |                  ~ ~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~
-1 warning generated.
-compiling dji_motor.c...
-compiling dummy_kinematic_v2.c...
 compiling dummy_cmd.c...
-modules/imu/DM_IMU/DM_IMU.c(29): warning: implicit conversion loses integer precision: 'int' to 'uint16_t' (aka 'unsigned short') [-Wimplicit-int-conversion]
-   29 |     accel[0] = pData[3] << 8 | pData[2];
-      |              ~ ~~~~~~~~~~~~~~^~~~~~~~~~
-modules/imu/DM_IMU/DM_IMU.c(30): warning: implicit conversion loses integer precision: 'int' to 'uint16_t' (aka 'unsigned short') [-Wimplicit-int-conversion]
-   30 |     accel[1] = pData[5] << 8 | pData[4];
-      |              ~ ~~~~~~~~~~~~~~^~~~~~~~~~
-modules/imu/DM_IMU/DM_IMU.c(31): warning: implicit conversion loses integer precision: 'int' to 'uint16_t' (aka 'unsigned short') [-Wimplicit-int-conversion]
-   31 |     accel[2] = pData[7] << 8 | pData[6];
-      |              ~ ~~~~~~~~~~~~~~^~~~~~~~~~
-modules/imu/DM_IMU/DM_IMU.c(41): warning: implicit conversion loses integer precision: 'int' to 'uint16_t' (aka 'unsigned short') [-Wimplicit-int-conversion]
-   41 |     gyro[0] = pData[3] << 8 | pData[2];
-      |             ~ ~~~~~~~~~~~~~~^~~~~~~~~~
-modules/imu/DM_IMU/DM_IMU.c(42): warning: implicit conversion loses integer precision: 'int' to 'uint16_t' (aka 'unsigned short') [-Wimplicit-int-conversion]
-   42 |     gyro[1] = pData[5] << 8 | pData[4];
-      |             ~ ~~~~~~~~~~~~~~^~~~~~~~~~
-modules/imu/DM_IMU/DM_IMU.c(43): warning: implicit conversion loses integer precision: 'int' to 'uint16_t' (aka 'unsigned short') [-Wimplicit-int-conversion]
-   43 |     gyro[2] = pData[7] << 8 | pData[6];
-      |             ~ ~~~~~~~~~~~~~~^~~~~~~~~~
-6 warnings generated.
-compiling DM_IMU.c...
-compiling list.c...
-compiling heap_4.c...
-compiling event_groups.c...
-compiling dummy_vision.c...
-application/dummy_motormatic.c(100): warning: converting the enum constant to a boolean [-Wint-in-bool-context]
-  100 |                 .Improve = PID_Integral_Limit || PID_Derivative_On_Measurement || PID_Trapezoid_Intergral,
-      |                                               ^
-application/dummy_motormatic.c(100): warning: converting the enum constant to a boolean [-Wint-in-bool-context]
-  100 |                 .Improve = PID_Integral_Limit || PID_Derivative_On_Measurement || PID_Trapezoid_Intergral,
-      |                                                                                ^
-2 warnings generated.
-compiling dummy_motormatic.c...
-compiling stream_buffer.c...
-compiling timers.c...
-compiling queue.c...
-compiling startup.c...
-compiling system.c...
-compiling tasks.c...
-compiling bsp_delay.c...
-compiling bsp_clocks.c...
-compiling bsp_group_irq.c...
-compiling bsp_common.c...
-compiling bsp_guard.c...
-compiling bsp_ipc.c...
-compiling bsp_io.c...
-compiling bsp_irq.c...
-compiling bsp_sbrk.c...
-compiling bsp_ospi_b.c...
-compiling bsp_macl.c...
-compiling bsp_register_protection.c...
-compiling bsp_sdram.c...
-compiling bsp_security.c...
-compiling r_dtc.c...
-compiling r_ioport.c...
-compiling bsp_linker.c...
-compiling r_canfd.c...
-compiling r_usb_cdataio.c...
-compiling r_usb_basic.c...
-compiling r_sci_uart.c...
-compiling r_usb_clibusbip.c...
-compiling r_usb_cstd_rtos.c...
-compiling r_usb_hcontrolrw.c...
-compiling r_usb_hbc.c...
-compiling r_usb_hdriver.c...
-compiling r_usb_hhubsys.c...
-compiling r_usb_hintfifo.c...
-compiling r_usb_hinthandler_usbip0.c...
-compiling r_usb_hinthandler_usbip1.c...
-compiling r_usb_hlibusbip.c...
-compiling r_usb_hscheduler.c...
-compiling r_usb_hmanager.c...
-compiling r_usb_hstdfunction.c...
-compiling r_usb_pbc.c...
-compiling r_usb_hsignal.c...
-compiling r_usb_pcontrolrw.c...
-compiling r_usb_pintfifo.c...
-compiling r_usb_pinthandler_usbip0.c...
-compiling r_usb_pdriver.c...
-compiling r_usb_psignal.c...
-compiling r_usb_plibusbip.c...
-compiling r_usb_pstdfunction.c...
-compiling r_usb_creg_abs.c...
-compiling r_usb_dma.c...
-compiling r_usb_hreg_abs.c...
-compiling r_usb_hostelectrical.c...
-compiling r_usb_pstdrequest.c...
-compiling r_usb_hreg_access.c...
-compiling r_usb_creg_access.c...
-compiling r_usb_preg_abs.c...
-compiling r_usb_mcu.c...
-compiling r_usb_preg_access.c...
-compiling r_usb_pcdc_driver.c...
-compiling common_data.c...
-compiling daemon_task.c...
-compiling main.c...
-compiling port.c...
-compiling hal_data.c...
-compiling motor_ctrl_task.c...
-compiling pin_data.c...
-compiling vector_data.c...
-compiling robot_task.c...
 linking...
-Program Size: Code=45656 RO-data=4740 RW-data=364 ZI-data=22100  
+Program Size: Code=31356 RO-data=4100 RW-data=344 ZI-data=28748  
 FromELF: creating hex file...
 After Build - User command #1: cmd /c ""c:\Users\Xiong Sir\Desktop\Customer_Controller\rasc_launcher.bat" "c:\Users\Xiong Sir\Desktop\Customer_Controller\rasc_version.txt" -nosplash --launcher.suppressErrors --gensmartbundle --compiler ARMv6 --devicefamily ra "c:\Users\Xiong Sir\Desktop\Customer_Controller\configuration.xml" "c:\Users\Xiong Sir\Desktop\Customer_Controller\Objects\FSP_Project.axf" 2> "%TEMP%\rasc_stderr.out""
 [INFO] Input file "c:\Users\Xiong Sir\Desktop\Customer_Controller\Objects\FSP_Project.axf" is newer than output file "c:\Users\Xiong Sir\Desktop\Customer_Controller\Objects\FSP_Project.sbd". Proceeding with RASC invocation...
 Generating Smart Bundle..
-".\Objects\FSP_Project.axf" - 0 Error(s), 13 Warning(s).
+".\Objects\FSP_Project.axf" - 0 Error(s), 0 Warning(s).
 
 <h2>Software Packages used:</h2>
 
@@ -213,219 +74,219 @@ Package Vendor: Renesas
 <h2>Collection of Component Files used:</h2>
 
    * Component: Renesas::Flex Software:Build Configuration
-      Include file:  ra_cfg/fsp_cfg/r_ioport_cfg.h
-      Include file:  ra_cfg/fsp_cfg/r_sci_uart_cfg.h
-      Include file:  ra_cfg/fsp_cfg/bsp/bsp_mcu_family_cfg.h
+      Include file:  ra_cfg/aws/FreeRTOSConfig.h
+      Include file:  ra_cfg/fsp_cfg/bsp/board_cfg.h
+      Include file:  ra_cfg/fsp_cfg/bsp/bsp_cfg.h
       Include file:  ra_cfg/fsp_cfg/bsp/bsp_mcu_ofs_cfg.h
+      Include file:  ra_cfg/fsp_cfg/r_canfd_cfg.h
+      Include file:  ra_cfg/fsp_cfg/r_ioport_cfg.h
+      Include file:  ra_cfg/fsp_cfg/bsp/bsp_mcu_family_cfg.h
+      Include file:  ra_cfg/fsp_cfg/r_usb_basic_cfg.h
+      Include file:  ra_cfg/fsp_cfg/r_usb_class_cfg.h
+      Include file:  ra_cfg/fsp_cfg/bsp/bsp_pin_cfg.h
+      Include file:  ra_cfg/fsp_cfg/r_sci_uart_cfg.h
+      Include file:  ra_cfg/fsp_cfg/bsp/bsp_mcu_device_cfg.h
       Include file:  ra_cfg/fsp_cfg/bsp/bsp_mcu_device_pn_cfg.h
       Include file:  ra_cfg/fsp_cfg/r_dtc_cfg.h
-      Include file:  ra_cfg/fsp_cfg/bsp/board_cfg.h
-      Include file:  ra_cfg/aws/FreeRTOSConfig.h
       Include file:  ra_cfg/fsp_cfg/r_usb_pcdc_cfg.h
-      Include file:  ra_cfg/fsp_cfg/bsp/bsp_pin_cfg.h
-      Include file:  ra_cfg/fsp_cfg/bsp/bsp_mcu_device_cfg.h
-      Include file:  ra_cfg/fsp_cfg/bsp/bsp_cfg.h
-      Include file:  ra_cfg/fsp_cfg/r_canfd_cfg.h
-      Include file:  ra_cfg/fsp_cfg/r_usb_class_cfg.h
-      Include file:  ra_cfg/fsp_cfg/r_usb_basic_cfg.h
 
    * Component: Renesas::Flex Software:Components:ra
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/a-profile/cmsis_gcc_a.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/a-profile/cmsis_clang_a.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/a-profile/cmsis_armclang_a.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/a-profile/cmsis_cp15.h
       Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/cmsis_compiler.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/a-profile/irq_ctrl.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/a-profile/cmsis_cp15.h
       Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/cmsis_armclang.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/a-profile/cmsis_iccarm_a.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_ca.h
       Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/cmsis_clang.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm0.h
       Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm0plus.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/cmsis_version.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm1.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm3.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm33.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm35p.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm4.h
       Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm23.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm33.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm7.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_sc000.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/a-profile/cmsis_clang_a.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/a-profile/irq_ctrl.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm0.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_ca.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm1.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/cmsis_version.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm52.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/a-profile/cmsis_iccarm_a.h
       Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/cmsis_gcc.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/a-profile/cmsis_armclang_a.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm3.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm4.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm55.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/a-profile/cmsis_gcc_a.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm35p.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm85.h
+      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/atomic.h
       Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/m-profile/armv81m_pac.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/tz_context.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/m-profile/cmsis_tiarmclang_m.h
+      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/message_buffer.h
       Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/m-profile/armv7m_cachel1.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/r-profile/cmsis_gcc_r.h
+      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/mpu_prototypes.h
+      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/mpu_wrappers.h
       Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/m-profile/armv8m_pmu.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/m-profile/armv8m_mpu.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/m-profile/cmsis_clang_m.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/m-profile/cmsis_gcc_m.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/m-profile/armv7m_mpu.h
       Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/croutine.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_sc300.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/r-profile/cmsis_clang_r.h
+      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/newlib-freertos.h
+      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/picolibc-freertos.h
+      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/projdefs.h
+      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/queue.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/m-profile/cmsis_armclang_m.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/m-profile/cmsis_gcc_m.h
+      Source file:   ra/aws/FreeRTOS/FreeRTOS/Source/event_groups.c
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/m-profile/armv7m_mpu.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/m-profile/cmsis_clang_m.h
       Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/deprecated_definitions.h
       Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/event_groups.h
       Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/FreeRTOS.h
-      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/message_buffer.h
-      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/mpu_prototypes.h
-      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/mpu_wrappers.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm85.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/m-profile/cmsis_armclang_m.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/r-profile/cmsis_armclang_r.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/r-profile/cmsis_clang_r.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm7.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/m-profile/cmsis_tiarmclang_m.h
-      Source file:   ra/aws/FreeRTOS/FreeRTOS/Source/event_groups.c
       Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_starmc1.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_sc000.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/tz_context.h
+      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/portable.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/r-profile/cmsis_armclang_r.h
       Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/m-profile/cmsis_iccarm_m.h
       Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/list.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_sc300.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm55.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/core_cm52.h
-      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/r-profile/cmsis_gcc_r.h
-      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/atomic.h
-      Include file:  ra/fsp/inc/api/fsp_common_api.h
-      Include file:  ra/fsp/inc/api/r_usb_pcdc_api.h
-      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/queue.h
-      Include file:  ra/fsp/inc/api/bsp_api.h
-      Include file:  ra/fsp/inc/api/r_usb_basic_api.h
-      Include file:  ra/fsp/inc/fsp_version.h
-      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/picolibc-freertos.h
-      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/semphr.h
-      Include file:  ra/fsp/inc/instances/r_dtc.h
-      Source file:   ra/aws/FreeRTOS/FreeRTOS/Source/stream_buffer.c
-      Include file:  ra/fsp/inc/instances/r_ioport.h
-      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/stream_buffer.h
-      Source file:   ra/aws/FreeRTOS/FreeRTOS/Source/portable/MemMang/heap_4.c
-      Include file:  ra/fsp/inc/fsp_features.h
-      Include file:  ra/fsp/inc/instances/r_sci_uart.h
-      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/portable.h
-      Include file:  ra/fsp/inc/api/r_ioport_api.h
-      Include file:  ra/fsp/inc/instances/r_canfd.h
-      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/newlib-freertos.h
+      Include file:  ra/arm/CMSIS_6/CMSIS/Core/Include/m-profile/armv8m_mpu.h
       Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/stack_macros.h
-      Source file:   ra/aws/FreeRTOS/FreeRTOS/Source/tasks.c
-      Include file:  ra/fsp/inc/api/r_can_api.h
-      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/task.h
-      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/projdefs.h
-      Source file:   ra/aws/FreeRTOS/FreeRTOS/Source/list.c
-      Source file:   ra/aws/FreeRTOS/FreeRTOS/Source/timers.c
-      Source file:   ra/aws/FreeRTOS/FreeRTOS/Source/queue.c
-      Include file:  ra/fsp/inc/api/r_transfer_api.h
-      Include file:  ra/fsp/inc/api/r_uart_api.h
       Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/timers.h
-      Source file:   ra/fsp/src/bsp/mcu/all/bsp_register_protection.c
-      Include file:  ra/fsp/src/bsp/mcu/all/bsp_ospi_b.h
-      Include file:  ra/fsp/src/bsp/mcu/all/bsp_compiler_support.h
-      Include file:  ra/fsp/src/bsp/cmsis/Device/RENESAS/Include/system.h
-      Source file:   ra/fsp/src/bsp/mcu/all/bsp_clocks.c
-      Source file:   ra/fsp/src/bsp/mcu/all/bsp_common.c
-      Include file:  ra/fsp/src/bsp/mcu/all/bsp_exceptions.h
-      Include file:  ra/fsp/src/bsp/mcu/all/bsp_ipc.h
-      Include file:  ra/fsp/src/bsp/mcu/all/bsp_guard.h
-      Source file:   ra/fsp/src/bsp/mcu/all/bsp_irq.c
-      Source file:   ra/fsp/src/bsp/mcu/all/bsp_delay.c
-      Include file:  ra/fsp/src/bsp/mcu/all/bsp_irq.h
-      Source file:   ra/fsp/src/bsp/mcu/all/bsp_guard.c
-      Include file:  ra/fsp/src/bsp/mcu/all/bsp_clocks.h
-      Include file:  ra/fsp/src/bsp/mcu/all/bsp_macl.h
-      Source file:   ra/fsp/src/bsp/mcu/all/bsp_macl.c
-      Include file:  ra/fsp/src/bsp/mcu/all/bsp_mmf.h
-      Include file:  ra/fsp/src/bsp/mcu/all/bsp_module_stop.h
-      Source file:   ra/fsp/src/bsp/cmsis/Device/RENESAS/Source/system.c
-      Include file:  ra/fsp/src/bsp/cmsis/Device/RENESAS/Include/R7FA6M5BH.h
-      Source file:   ra/fsp/src/bsp/cmsis/Device/RENESAS/Source/startup.c
-      Include file:  ra/fsp/src/bsp/mcu/all/bsp_common.h
-      Include file:  ra/fsp/src/bsp/mcu/all/bsp_group_irq.h
-      Include file:  ra/fsp/src/bsp/mcu/all/bsp_delay.h
-      Source file:   ra/fsp/src/bsp/mcu/all/bsp_io.c
-      Source file:   ra/fsp/src/bsp/mcu/all/bsp_ipc.c
-      Include file:  ra/fsp/src/bsp/cmsis/Device/RENESAS/Include/renesas.h
-      Source file:   ra/fsp/src/bsp/mcu/all/bsp_group_irq.c
+      Include file:  ra/fsp/inc/instances/r_canfd.h
+      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/semphr.h
+      Include file:  ra/fsp/inc/api/bsp_api.h
+      Include file:  ra/fsp/inc/instances/r_ioport.h
+      Source file:   ra/aws/FreeRTOS/FreeRTOS/Source/portable/MemMang/heap_4.c
+      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/task.h
+      Include file:  ra/fsp/inc/api/r_transfer_api.h
       Include file:  ra/fsp/inc/instances/r_usb_basic.h
-      Include file:  ra/fsp/src/bsp/mcu/all/bsp_io.h
-      Include file:  ra/fsp/src/bsp/mcu/all/bsp_mcu_api.h
+      Include file:  ra/fsp/src/bsp/cmsis/Device/RENESAS/Include/R7FA6M5BH.h
+      Include file:  ra/fsp/src/bsp/cmsis/Device/RENESAS/Include/renesas.h
+      Include file:  ra/fsp/src/bsp/cmsis/Device/RENESAS/Include/system.h
+      Include file:  ra/fsp/inc/api/r_usb_pcdc_api.h
+      Source file:   ra/aws/FreeRTOS/FreeRTOS/Source/stream_buffer.c
+      Include file:  ra/fsp/inc/api/r_can_api.h
+      Include file:  ra/fsp/inc/fsp_features.h
+      Include file:  ra/aws/FreeRTOS/FreeRTOS/Source/include/stream_buffer.h
+      Include file:  ra/fsp/inc/instances/r_dtc.h
+      Include file:  ra/fsp/inc/api/r_ioport_api.h
+      Source file:   ra/fsp/src/bsp/cmsis/Device/RENESAS/Source/startup.c
+      Source file:   ra/aws/FreeRTOS/FreeRTOS/Source/list.c
+      Include file:  ra/fsp/inc/instances/r_sci_uart.h
+      Source file:   ra/aws/FreeRTOS/FreeRTOS/Source/queue.c
+      Include file:  ra/fsp/inc/api/fsp_common_api.h
+      Include file:  ra/fsp/inc/api/r_uart_api.h
+      Include file:  ra/fsp/inc/api/r_usb_basic_api.h
+      Source file:   ra/aws/FreeRTOS/FreeRTOS/Source/tasks.c
+      Source file:   ra/aws/FreeRTOS/FreeRTOS/Source/timers.c
+      Include file:  ra/fsp/inc/fsp_version.h
+      Source file:   ra/fsp/src/bsp/mcu/all/bsp_sbrk.c
+      Source file:   ra/fsp/src/bsp/mcu/all/bsp_macl.c
+      Include file:  ra/fsp/src/bsp/mcu/all/bsp_sdram.h
       Source file:   ra/fsp/src/bsp/mcu/all/bsp_ospi_b.c
-      Include file:  ra/fsp/src/rm_freertos_port/portmacro.h
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_cdataio.c
+      Source file:   ra/fsp/src/bsp/mcu/all/bsp_sdram.c
+      Include file:  ra/fsp/src/bsp/mcu/all/bsp_delay.h
+      Source file:   ra/fsp/src/bsp/mcu/all/bsp_security.c
+      Include file:  ra/fsp/src/bsp/mcu/all/bsp_group_irq.h
+      Include file:  ra/fsp/src/bsp/mcu/all/bsp_ospi_b.h
+      Include file:  ra/fsp/src/bsp/mcu/all/bsp_clocks.h
+      Include file:  ra/fsp/src/bsp/mcu/all/bsp_ipc.h
+      Include file:  ra/fsp/src/bsp/mcu/all/bsp_exceptions.h
+      Source file:   ra/fsp/src/bsp/mcu/all/bsp_irq.c
+      Source file:   ra/fsp/src/bsp/mcu/all/bsp_io.c
+      Include file:  ra/fsp/src/bsp/mcu/all/bsp_common.h
+      Source file:   ra/fsp/src/bsp/mcu/all/bsp_guard.c
+      Source file:   ra/fsp/src/bsp/cmsis/Device/RENESAS/Source/system.c
+      Source file:   ra/fsp/src/bsp/mcu/all/bsp_clocks.c
+      Source file:   ra/fsp/src/bsp/mcu/all/bsp_ipc.c
+      Include file:  ra/fsp/src/bsp/mcu/all/bsp_irq.h
+      Include file:  ra/fsp/src/bsp/mcu/all/bsp_io.h
+      Include file:  ra/fsp/src/bsp/mcu/all/bsp_compiler_support.h
+      Source file:   ra/fsp/src/bsp/mcu/all/bsp_group_irq.c
+      Source file:   ra/fsp/src/bsp/mcu/all/bsp_delay.c
+      Source file:   ra/fsp/src/bsp/mcu/all/bsp_common.c
+      Include file:  ra/fsp/src/bsp/mcu/all/bsp_macl.h
+      Include file:  ra/fsp/src/bsp/mcu/all/bsp_mcu_api.h
+      Include file:  ra/fsp/src/bsp/mcu/all/bsp_mmf.h
+      Include file:  ra/fsp/src/bsp/mcu/all/bsp_guard.h
+      Include file:  ra/fsp/src/bsp/mcu/all/bsp_register_protection.h
+      Include file:  ra/fsp/src/bsp/mcu/all/bsp_module_stop.h
+      Source file:   ra/fsp/src/bsp/mcu/all/bsp_register_protection.c
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hhubsys.c
       Include file:  ra/fsp/src/r_usb_basic/src/driver/inc/r_usb_extern.h
-      Source file:   ra/fsp/src/r_dtc/r_dtc.c
+      Include file:  ra/fsp/src/bsp/mcu/ra6m5/bsp_mcu_info.h
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hinthandler_usbip0.c
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hlibusbip.c
+      Source file:   ra/fsp/src/rm_freertos_port/port.c
+      Include file:  ra/fsp/src/bsp/mcu/all/bsp_tfu.h
+      Source file:   ra/fsp/src/bsp/mcu/ra6m5/bsp_linker.c
+      Include file:  ra/fsp/src/r_usb_basic/src/driver/inc/r_usb_basic_define.h
       Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_cstd_rtos.c
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hbc.c
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hinthandler_usbip1.c
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hmanager.c
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hscheduler.c
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hintfifo.c
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hsignal.c
+      Source file:   ra/fsp/src/r_dtc/r_dtc.c
       Include file:  ra/fsp/src/bsp/mcu/ra6m5/bsp_elc.h
+      Source file:   ra/fsp/src/r_usb_basic/r_usb_basic.c
+      Source file:   ra/fsp/src/r_canfd/r_canfd.c
+      Include file:  ra/fsp/src/bsp/mcu/ra6m5/bsp_peripheral.h
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hcontrolrw.c
+      Include file:  ra/fsp/src/bsp/mcu/ra6m5/bsp_feature.h
+      Include file:  ra/fsp/src/r_usb_basic/src/driver/inc/r_usb_cstd_rtos.h
+      Source file:   ra/fsp/src/r_sci_uart/r_sci_uart.c
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hbc.c
+      Include file:  ra/fsp/src/rm_freertos_port/portmacro.h
       Source file:   ra/fsp/src/r_ioport/r_ioport.c
       Include file:  ra/fsp/src/r_usb_basic/src/driver/inc/r_usb_typedef.h
-      Include file:  ra/fsp/src/bsp/mcu/ra6m5/bsp_mcu_info.h
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hcontrolrw.c
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hdriver.c
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hhubsys.c
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hintfifo.c
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hinthandler_usbip0.c
-      Include file:  ra/fsp/src/bsp/mcu/all/bsp_sdram.h
-      Include file:  ra/fsp/src/bsp/mcu/all/bsp_register_protection.h
-      Source file:   ra/fsp/src/r_usb_basic/r_usb_basic.c
-      Include file:  ra/fsp/src/r_usb_basic/src/driver/inc/r_usb_basic_define.h
-      Source file:   ra/fsp/src/r_sci_uart/r_sci_uart.c
-      Include file:  ra/fsp/src/bsp/mcu/ra6m5/bsp_feature.h
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_clibusbip.c
-      Include file:  ra/fsp/src/bsp/mcu/all/bsp_tfu.h
-      Source file:   ra/fsp/src/bsp/mcu/all/bsp_sdram.c
-      Source file:   ra/fsp/src/bsp/mcu/all/bsp_security.c
-      Source file:   ra/fsp/src/rm_freertos_port/port.c
-      Include file:  ra/fsp/src/bsp/mcu/ra6m5/bsp_peripheral.h
-      Source file:   ra/fsp/src/r_canfd/r_canfd.c
-      Source file:   ra/fsp/src/bsp/mcu/ra6m5/bsp_linker.c
       Include file:  ra/fsp/src/bsp/mcu/all/bsp_security.h
-      Source file:   ra/fsp/src/bsp/mcu/all/bsp_sbrk.c
-      Include file:  ra/fsp/src/r_usb_basic/src/driver/inc/r_usb_cstd_rtos.h
-      Source file:   ra/fsp/src/r_usb_basic/src/hw/r_usb_hreg_access.c
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_plibusbip.c
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hlibusbip.c
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_pinthandler_usbip0.c
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hinthandler_usbip1.c
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_pstdfunction.c
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_pcontrolrw.c
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_psignal.c
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_pstdrequest.c
-      Include file:  ra/fsp/src/r_usb_basic/src/hw/inc/r_usb_dmac.h
-      Source file:   ra/fsp/src/r_usb_basic/src/hw/r_usb_creg_abs.c
-      Source file:   ra/fsp/src/r_usb_basic/src/hw/r_usb_creg_access.c
-      Source file:   ra/fsp/src/r_usb_basic/src/hw/r_usb_hreg_abs.c
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hsignal.c
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_cdataio.c
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_clibusbip.c
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hdriver.c
       Source file:   ra/fsp/src/r_usb_basic/src/hw/r_usb_preg_access.c
-      Include file:  ra/fsp/src/r_usb_pcdc/src/inc/r_usb_pcdc.h
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hstdfunction.c
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hscheduler.c
       Include file:  ra/fsp/src/r_usb_basic/src/hw/inc/r_usb_reg_access.h
-      Include file:  ra/fsp/src/r_usb_basic/src/hw/inc/r_usb_bitdefine.h
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_pdriver.c
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_pintfifo.c
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_pbc.c
-      Source file:   ra/fsp/src/r_usb_basic/src/hw/r_usb_preg_abs.c
-      Source file:   ra/fsp/src/r_usb_basic/src/hw/r_usb_mcu.c
-      Source file:   ra/fsp/src/r_usb_pcdc/src/r_usb_pcdc_driver.c
       Source file:   ra/fsp/src/r_usb_basic/src/hw/r_usb_dma.c
+      Source file:   ra/fsp/src/r_usb_basic/src/hw/r_usb_preg_abs.c
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_plibusbip.c
+      Source file:   ra/fsp/src/r_usb_basic/src/hw/r_usb_creg_abs.c
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_psignal.c
       Source file:   ra/fsp/src/r_usb_basic/src/hw/r_usb_hostelectrical.c
-      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hmanager.c
+      Source file:   ra/fsp/src/r_usb_basic/src/hw/r_usb_hreg_abs.c
+      Source file:   ra/fsp/src/r_usb_basic/src/hw/r_usb_creg_access.c
+      Include file:  ra/fsp/src/r_usb_basic/src/hw/inc/r_usb_dmac.h
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_pstdfunction.c
+      Source file:   ra/fsp/src/r_usb_pcdc/src/r_usb_pcdc_driver.c
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_hstdfunction.c
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_pdriver.c
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_pcontrolrw.c
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_pintfifo.c
+      Include file:  ra/fsp/src/r_usb_basic/src/hw/inc/r_usb_bitdefine.h
+      Include file:  ra/fsp/src/r_usb_pcdc/src/inc/r_usb_pcdc.h
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_pinthandler_usbip0.c
+      Source file:   ra/fsp/src/r_usb_basic/src/hw/r_usb_mcu.c
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_pstdrequest.c
+      Source file:   ra/fsp/src/r_usb_basic/src/driver/r_usb_pbc.c
+      Source file:   ra/fsp/src/r_usb_basic/src/hw/r_usb_hreg_access.c
 
    * Component: Renesas::Flex Software:Generated Data
-      Include file:  ra_gen/vector_data.h
-      Source file:   ra_gen/vector_data.c
-      Source file:   ra_gen/pin_data.c
-      Source file:   ra_gen/robot_task.c
-      Source file:   ra_gen/hal_data.c
-      Include file:  ra_gen/robot_task.h
-      Source file:   ra_gen/motor_ctrl_task.c
-      Include file:  ra_gen/bsp_clock_cfg.h
+      Include file:  ra_gen/hal_data.h
+      Include file:  ra_gen/motor_ctrl_task.h
       Source file:   ra_gen/common_data.c
       Source file:   ra_gen/daemon_task.c
+      Include file:  ra_gen/bsp_clock_cfg.h
+      Source file:   ra_gen/motor_ctrl_task.c
       Include file:  ra_gen/daemon_task.h
-      Include file:  ra_gen/hal_data.h
       Include file:  ra_gen/common_data.h
+      Source file:   ra_gen/hal_data.c
+      Source file:   ra_gen/pin_data.c
+      Source file:   ra_gen/robot_task.c
+      Include file:  ra_gen/robot_task.h
       Source file:   ra_gen/main.c
-      Include file:  ra_gen/motor_ctrl_task.h
+      Source file:   ra_gen/vector_data.c
+      Include file:  ra_gen/vector_data.h
 
    * Component: Renesas::Flex Software:Linker Script
 
    * Component: Renesas::Flex Software:RA Configuration@1.0.0
-Build Time Elapsed:  00:00:39
+Build Time Elapsed:  00:00:17
 </pre>
 </body>
 </html>
