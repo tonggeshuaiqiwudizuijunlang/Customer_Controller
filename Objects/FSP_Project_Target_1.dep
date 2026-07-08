@@ -151,7 +151,7 @@ I (ra\fsp\inc\api\r_usb_pcdc_api.h)(0x693C416C)
 I (ra\fsp\inc\instances\r_canfd.h)(0x693C416A)
 I (ra_cfg\fsp_cfg\r_canfd_cfg.h)(0x699664CD)
 I (ra\fsp\inc\api\r_can_api.h)(0x693C416A)
-I (application\dummy_cmd.h)(0x6A47D314)
+I (application\dummy_cmd.h)(0x6A4D018A)
 I (modules\robot\robot_types.h)(0x6A47B4AD)
 I (application\dummy_motormatic.h)(0x699A86C8)
 I (modules\dummy_kinematic\dummy_kinematic_v2.h)(0x6A2BDBBC)
@@ -1498,11 +1498,11 @@ I (bsp\dwt\bsp_dwt.h)(0x69857C0D)
 I (modules\daemon\daemon.h)(0x6A2C03EB)
 F (.\modules\imu\DM_IMU\DM_IMU.h)(0x6A2ABA9B)()
 F (.\modules\imu\ex_imu\imu_can.h)(0x6A2ABA7C)()
-F (.\application\dummy_cmd.c)(0x6A47D314)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m33 -mfpu=fpv5-sp-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char-D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -I ../keil_test -I ./ra -I ./ra_cfg -I ./ra_gen -I ./bsp -I ./bsp/dwt -I ./bsp/can -I ./bsp/uart -I ./bsp/gpio -I ./bsp/usb -I ./modules -I ./modules/controller -I ./modules/daemon -I ./modules/message_center -I ./modules/dummy_kinematic -I ./modules/vision -I ./modules/wifi -I ./modules/bluetooth -I ./modules/serial_debug -I ./modules/robot -I ./modules/motor -I ./modules/motor/step_motor -I ./modules/motor/DJImotor -I ./modules/motor/RSmotor -I ./modules/imu -I ./modules/imu/DM_IMU -I ./modules/imu/ex_imu -I ./application -I ./src @./via/rasc_armclang.via-I./RTE/_Target_1-I./ra/arm/CMSIS_6/CMSIS/Core/Include-I./ra/aws/FreeRTOS/FreeRTOS/Source/include-I./ra/fsp/inc-I./ra/fsp/inc/api-I./ra/fsp/inc/instances-I./ra/fsp/src/r_usb_basic/src/driver/inc-I./ra/fsp/src/rm_freertos_port-I./ra_cfg/aws-I./ra_cfg/fsp_cfg-I./ra_cfg/fsp_cfg/bsp-I./ra_gen-I"C:/Users/Xiong Sir/Desktop/Customer_Controller"-D__UVISION_VERSION="542" -D_RTE_-o ./objects/dummy_cmd.o -MMD)
-I (application\dummy_cmd.h)(0x6A47D314)
+F (.\application\dummy_cmd.c)(0x6A4CFA3E)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m33 -mfpu=fpv5-sp-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char-D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -I ../keil_test -I ./ra -I ./ra_cfg -I ./ra_gen -I ./bsp -I ./bsp/dwt -I ./bsp/can -I ./bsp/uart -I ./bsp/gpio -I ./bsp/usb -I ./modules -I ./modules/controller -I ./modules/daemon -I ./modules/message_center -I ./modules/dummy_kinematic -I ./modules/vision -I ./modules/wifi -I ./modules/bluetooth -I ./modules/serial_debug -I ./modules/robot -I ./modules/motor -I ./modules/motor/step_motor -I ./modules/motor/DJImotor -I ./modules/motor/RSmotor -I ./modules/imu -I ./modules/imu/DM_IMU -I ./modules/imu/ex_imu -I ./application -I ./src @./via/rasc_armclang.via-I./RTE/_Target_1-I./ra/arm/CMSIS_6/CMSIS/Core/Include-I./ra/aws/FreeRTOS/FreeRTOS/Source/include-I./ra/fsp/inc-I./ra/fsp/inc/api-I./ra/fsp/inc/instances-I./ra/fsp/src/r_usb_basic/src/driver/inc-I./ra/fsp/src/rm_freertos_port-I./ra_cfg/aws-I./ra_cfg/fsp_cfg-I./ra_cfg/fsp_cfg/bsp-I./ra_gen-I"C:/Users/Xiong Sir/Desktop/Customer_Controller"-D__UVISION_VERSION="542" -D_RTE_-o ./objects/dummy_cmd.o -MMD)
+I (application\dummy_cmd.h)(0x6A4D018A)
 I (modules\robot\robot_types.h)(0x6A47B4AD)
 I (modules\message_center\message_center.h)(0x699471E4)
-I (modules\serial_debug\serial_debug.h)(0x6A426DDF)
+I (modules\bluetooth\bluetooth.h)(0x6A426A35)
 I (bsp\uart\bsp_uart.h)(0x69AC5748)
 I (ra_gen\hal_data.h)(0x6A427C63)
 I (ra\fsp\inc\api\bsp_api.h)(0x693C416A)
@@ -1580,8 +1580,8 @@ I (ra_cfg\fsp_cfg\r_canfd_cfg.h)(0x699664CD)
 I (ra\fsp\inc\api\r_can_api.h)(0x693C416A)
 I (modules\vision\vision.h)(0x69C711C6)
 I (bsp\dwt\bsp_dwt.h)(0x69857C0D)
-F (.\application\dummy_cmd.h)(0x6A47D314)()
-F (.\application\dummy_motormatic.c)(0x6A47B4AD)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m33 -mfpu=fpv5-sp-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char-D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -I ../keil_test -I ./ra -I ./ra_cfg -I ./ra_gen -I ./bsp -I ./bsp/dwt -I ./bsp/can -I ./bsp/uart -I ./bsp/gpio -I ./bsp/usb -I ./modules -I ./modules/controller -I ./modules/daemon -I ./modules/message_center -I ./modules/dummy_kinematic -I ./modules/vision -I ./modules/wifi -I ./modules/bluetooth -I ./modules/serial_debug -I ./modules/robot -I ./modules/motor -I ./modules/motor/step_motor -I ./modules/motor/DJImotor -I ./modules/motor/RSmotor -I ./modules/imu -I ./modules/imu/DM_IMU -I ./modules/imu/ex_imu -I ./application -I ./src @./via/rasc_armclang.via-I./RTE/_Target_1-I./ra/arm/CMSIS_6/CMSIS/Core/Include-I./ra/aws/FreeRTOS/FreeRTOS/Source/include-I./ra/fsp/inc-I./ra/fsp/inc/api-I./ra/fsp/inc/instances-I./ra/fsp/src/r_usb_basic/src/driver/inc-I./ra/fsp/src/rm_freertos_port-I./ra_cfg/aws-I./ra_cfg/fsp_cfg-I./ra_cfg/fsp_cfg/bsp-I./ra_gen-I"C:/Users/Xiong Sir/Desktop/Customer_Controller"-D__UVISION_VERSION="542" -D_RTE_-o ./objects/dummy_motormatic.o -MMD)
+F (.\application\dummy_cmd.h)(0x6A4D018A)()
+F (.\application\dummy_motormatic.c)(0x6A47D68F)(-xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m33 -mfpu=fpv5-sp-d16 -mfloat-abi=hard -c-fno-rtti -funsigned-char-D__MICROLIB -gdwarf-4 -O0 -ffunction-sections -I ../keil_test -I ./ra -I ./ra_cfg -I ./ra_gen -I ./bsp -I ./bsp/dwt -I ./bsp/can -I ./bsp/uart -I ./bsp/gpio -I ./bsp/usb -I ./modules -I ./modules/controller -I ./modules/daemon -I ./modules/message_center -I ./modules/dummy_kinematic -I ./modules/vision -I ./modules/wifi -I ./modules/bluetooth -I ./modules/serial_debug -I ./modules/robot -I ./modules/motor -I ./modules/motor/step_motor -I ./modules/motor/DJImotor -I ./modules/motor/RSmotor -I ./modules/imu -I ./modules/imu/DM_IMU -I ./modules/imu/ex_imu -I ./application -I ./src @./via/rasc_armclang.via-I./RTE/_Target_1-I./ra/arm/CMSIS_6/CMSIS/Core/Include-I./ra/aws/FreeRTOS/FreeRTOS/Source/include-I./ra/fsp/inc-I./ra/fsp/inc/api-I./ra/fsp/inc/instances-I./ra/fsp/src/r_usb_basic/src/driver/inc-I./ra/fsp/src/rm_freertos_port-I./ra_cfg/aws-I./ra_cfg/fsp_cfg-I./ra_cfg/fsp_cfg/bsp-I./ra_gen-I"C:/Users/Xiong Sir/Desktop/Customer_Controller"-D__UVISION_VERSION="542" -D_RTE_-o ./objects/dummy_motormatic.o -MMD)
 I (application\dummy_motormatic.h)(0x699A86C8)
 I (modules\robot\robot_types.h)(0x6A47B4AD)
 I (modules\dummy_kinematic\dummy_kinematic_v2.h)(0x6A2BDBBC)

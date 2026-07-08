@@ -409,6 +409,9 @@ void Dummy_Motormatic_Init(void)
     memset(&dummy_feed_data, 0, sizeof(dummy_feed_data));
     memset(&current_pose, 0, sizeof(current_pose));
     memset(&target_pose, 0, sizeof(target_pose));
+    dummy_cmd_data.arm_mode = ARM_FREE_MODE;
+    dummy_cmd_data.arm_ctrl_mode = BIG_ARM_CTRL;
+    dummy_cmd_data.gripper_mode = GRIPPER_RELEASE;
 
     Dummy_Motormatic_Build_Kinematic_Config(&kinematic_config);
     Kinematic_Init(&kinematic_handle, &kinematic_config);

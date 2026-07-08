@@ -1,10 +1,9 @@
 ./objects/dummy_cmd.o: application\dummy_cmd.c application\dummy_cmd.h \
   modules\robot\robot_types.h modules\message_center\message_center.h \
-  modules\serial_debug\serial_debug.h bsp\uart\bsp_uart.h \
-  ra_gen\hal_data.h ra\fsp\inc\api\bsp_api.h \
-  ra\fsp\inc\api\fsp_common_api.h ra\fsp\inc\fsp_version.h \
-  ra_cfg\fsp_cfg\bsp\bsp_cfg.h ra_gen\bsp_clock_cfg.h \
-  ra_cfg\fsp_cfg\bsp\bsp_mcu_family_cfg.h \
+  modules\bluetooth\bluetooth.h bsp\uart\bsp_uart.h ra_gen\hal_data.h \
+  ra\fsp\inc\api\bsp_api.h ra\fsp\inc\api\fsp_common_api.h \
+  ra\fsp\inc\fsp_version.h ra_cfg\fsp_cfg\bsp\bsp_cfg.h \
+  ra_gen\bsp_clock_cfg.h ra_cfg\fsp_cfg\bsp\bsp_mcu_family_cfg.h \
   ra_cfg\fsp_cfg\bsp\bsp_mcu_device_pn_cfg.h \
   ra_cfg\fsp_cfg\bsp\bsp_mcu_device_cfg.h \
   ra_cfg\fsp_cfg\bsp\..\..\..\ra\fsp\src\bsp\mcu\ra6m5\bsp_mcu_info.h \

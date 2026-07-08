@@ -54,7 +54,7 @@ typedef struct {
     float pitch; // deg, Pitch around Y
     float yaw;   // deg, Yaw around Z
 
-    uint8_t is_finished; // 0:未完成 1:已完成
+    uint8_t auto_gripper; // 0:未完成 1:已完成
 
     uint16_t tailer; // 固定为0xFFFB
 } TX_BT_Pose_Data_s;
