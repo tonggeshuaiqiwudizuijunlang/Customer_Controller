@@ -1,0 +1,37 @@
+# Keil MDK编译输出
+Objects/
+Listings/
+
+# VS Code日志
+.vscode/*.log
+.vscode/*.log.lock
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+*~
+
+# 系统文件
+Thumbs.db
+.DS_Store
+
+# 编译生成的文件
+*.o
+*.d
+*.axf
+*.hex
+*.htm
+*.map
+*.dep
+*.lnp
+*.rpd
+*.sbd
+*.iex
+
+# J-Link配置
+*.JLinkScript
+
+# 可执行文件
+*.exe
+*.bat
